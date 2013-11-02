@@ -78,7 +78,7 @@ tagger:
     "network":
       descr_en: "Network"
       descr_fr: "Réseau"
-	  descr_cn: "网络"
+      descr_cn: "网络"
     "snmp":
       descr: "SNMP"
     "desktop":

@@ -1,7 +1,7 @@
 extends: base.j2
 default_block: article
 
-language: fr
+language: cn
 menu:
   -
      name: "Projets"

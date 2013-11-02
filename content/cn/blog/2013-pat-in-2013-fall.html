@@ -1,0 +1,67 @@
+---
+title: 2013冬PAT
+keywords: "pat"
+uuid: 5f6db065-38d1-4b64-af20-de632ad0f392
+---
+
+今天下午PAT和完美时空的笔试冲突了……
+
+╮(╯_╰)╭ PAT 交了100块，于是弃笔试。昨日想把1034撸出来，最后还是有两个case SF了，不知今日结果如何。
+
+开考之后按照预定的策略，做完一题直接下一题，所以前半小时把3小题搞定了(指的是提交了，没看结果)。 最后一道题第一句话理解好久，码完基本代码之后发现给的sample都没办法过，只好先回去看前三道结果，A 过了一半， B 有两个case WA了， C AC。真的是要镇定下来，不然真的很难看清坑的所在。
+
+A. The Black Hole of Numbers
+---
+
+>  For any 4-digit integer except the ones with all the digits being the same, if we sort the digits in non-increasing order first, and then in non-decreasing order, a new number can be obtained by taking the second number from the first one. Repeat in this manner we will soon end up at the number 6174 -- the "black hole" of 4-digit numbers. This number is named Kaprekar Constant.
+> For example, start from 6767, we'll get:
+>
+> 7766 - 6677 = 1089
+9810 - 0189 = 9621
+9621 - 1269 = 8352
+8532 - 2358 = 6174
+7641 - 1467 = 6174
+... ...
+> 
+> Given any 4-digit number, you are supposed to illustrate the way it gets into the black hole.
+
+题目还是比较简单的，模拟一下就好，我第一次提交的时候简单地把数字变成降序和升序，没有注意应该是要填充成4位数。 例如 23: 3200 - 0023 = 3177， 而我写成了: 0032 - 0023 = 0009。 幸亏这很容易测试得到， 我一不小心输入149 发现死循环了，所以很快就看到问题所在了。
+
+B. Mooncake
+---
+> Mooncake is a Chinese bakery product traditionally eaten during the Mid-Autumn Festival. Many types of fillings and crusts can be found in traditional mooncakes according to the region's culture. Now given the inventory amounts and the prices of all kinds of the mooncakes, together with the maximum total demand of the market, you are supposed to tell the maximum profit that can be made.
+>
+> Note: partial inventory storage can be taken. The sample shows the following situation: given three kinds of mooncakes with inventory amounts being 180, 150, and 100 thousand tons, and the prices being 7.5, 7.2, and 4.5 billion yuans. If the market demand can be at most 200 thousand tons, the best we can do is to sell 150 thousand tons of the second kind of mooncake, and 50 thousand tons of the third kind. Hence the total profit is 7.2 + 4.5/2 = 9.45 (billion yuans).
+
+第一反应就是利用 `price/inventory` 降序排列一下，逐个选择就好了。 结果死活有个case过不了， 一直想不通，折腾了近半个小时之后， 把inventory当成double 以及其中一个判定条件改为大于等于就这样过了T_T， 不知道是什么原因了，反正这个坑是有一点。
+
+C. Speech Patterns
+---
+> People often have a preference among synonyms of the same word. For example, some may prefer "the police", while others may prefer "the cops". Analyzing such patterns can help to narrow down a speaker's identity, which is useful when validating, for example, whether it's still the same person behind an online avatar.
+> 
+> Now given a paragraph of text sampled from someone's speech, can you find the person's most commonly used word?
+
+这个题目的Sample把题目的难度降低了0.5个难度（无视大小写+分词判别）。简单来说就是统计词频最高的词 (无视大小写)， 直接用string 和 map 解决了。 
+
+D. Gas Station
+---
+> A gas station has to be built at such a location that the minimum distance between the station and any of the residential housing is as far away as possible. However it must guarantee that all the houses are in its service range.
+> 
+> Now given the map of the city and several candidate locations for the gas station, you are supposed to give the best recommendation. If there are more than one solution, output the one with the smallest average distance to all the houses. If such a solution is still not unique, output the one with the smallest index number.
+
+据说大家都被第一句话迷惑了好久，但是幸好的是给的Sample把这个坑给填了，所以这道题的时候也是第一句话理解了好久，其实换种说法就好理解了：就是最大化最小距离。
+
+简单来说就是对每个候选地点(Gas Station) Dijkstra , 然后算每个目标(House)的值是否小于给定的最大服务辐射范围。然后算最小距离和平均距离。 求最小距离的最大的方案， 当这个也相同时，选择平均距离最小的。 如果平均距离也相同，那么选择 Index 最小的。 所以难点应该是 Dijkstra 吧，幸好1003、1018这些题目练了好多遍 Dijkstra， 所以题目理解完之后提交了就好了。
+
+后记
+---
+整个解题过程：A(13) - B(23) - C(25) - A(20) - D(30) - B(23) - B(25)
+终于全部AC了，完了之后赶紧收书包拿证书走人。走的时候应该是第四个AC的。不过看不懂排名规则，最后发现自己是在第10左右，不过还好ALL PASS + 前 10%。
+
+总之，比较有意思的一天。
+
+今天 Young 去上海参加优衣库的面试，伊之前老是问我这周末去不去找我姐，恰好我姐之前叫我周末去，我还心里暗自窃喜，不过后来发现有个PAT。不知道一直支持她走这条路是对是错， 不过总归还是得有点信心是不？加油吧！！
+
+{# Local Variables: #}
+{# mode: markdown   #}
+{# End:             #}
