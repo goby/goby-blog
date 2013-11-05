@@ -1,0 +1,283 @@
+---
+title: 一步一步写GIS库 3.开始工作，Geometry相关
+keywords: "GIS, 邯郸学步"
+uuid: 5f6db065-38d1-4b64-af20-de632aa0f397
+---
+
+0.准备
+---
+
+首先是先将前面介绍的几个开源库源码下载下来，基本上都是不需要额外的编译选项就可以在各种平台上编译（准确的说应该是类Unix）。
+
+把这些代码放到一个方便查找的地方，就像这样：
+![2013-11-05 10 57 10](https://f.cloud.github.com/assets/3690179/1470737/fae97eac-45c5-11e3-8be9-cb0b7ff950b8.png)
+
+然后将这些路径添加到 XCode 的头文件搜索路径中，以及把这些源码全部扔到工程里头去，像这样：
+![2013-11-05 10 59 59](https://f.cloud.github.com/assets/3690179/1470752/5f94e8d2-45c6-11e3-92bf-32b5449109a2.png)
+
+接下来将前几篇介绍和提到的简单整理整理思路。
+
+那么从最基本的开始吧——几何对象（Geometry），先观察观察ESRI公司的[IGeometry](http://help.arcgis.com/en/sdk/10.0/arcobjects_net/componenthelp/index.html#//002m000001rm000000)接口的信息：
+![2013-11-05 11 03 36](https://f.cloud.github.com/assets/3690179/1470762/e45bd95e-45c6-11e3-86d4-53fcbe79329b.png)
+
+接口中了解到基本都属性有Dimension、Envelope、GeometryType、SpatialReference等。Dimension就是维度，一般分为0、1、2、2.5、3几种情况，为了方便这个先不管了，我们先做2维的情况。
+
+Envelope就是最小外包框([MBR](http://en.wikipedia.org/wiki/Minimum_bounding_rectangle))， SpatialReference就是空间参考，将来空间参考应该会经常用到 Proj.4 这个项目。
+ESRI的实现中， MBR也是作为Geometry的一种类型，在我们的实现中，为了简化这种关系，MBR将和只有两个坐标点信息：右上角(Upper Right)和左下角(Lower Left)。 
+
+那么先来实现MBR吧！
+
+1. 确定Vertex
+---
+实现MBR之前，还有一个比较重要的内容就是顶点的表示，由于我们为了方便，只需要在2维情况下实现，所以就可以借用Eigen 这个项目里头的 Vector 来实现，代码如下：
+````C++
+
+#include <Eigen/Eigen>
+
+typedef Eigen::Vector3f Point3f;
+typedef Eigen::Vector3d Point3d;
+typedef Eigen::Vector2d Point2d;
+typedef Eigen::Vector2f Point2f;
+
+````
+这样做的缺点是可能后来转为3维或者2.5维时需要重构的代码太多，但是能把代码写少是一件不容易的事情，所以就先这样吧。
+
+2. MBR
+---
+最小外包框一般用来建空间索引、重绘地图等。最直接的就是最小外包框有四个顶点，而左下角和右上角两个点就能确定这个外包框，所以：
+
+````C++
+class Mbr {
+protected:
+    Point2f pt_ll, pt_ur;
+};
+````
+
+MBR应该也需要一些拓扑操作，所以正常还需要如下几个接口：
+````C++
+void reset(); // 将Mbr重置到初始状态
+bool valid(); // 判断是否合法
+float area(); // 面积计算
+void addPoint(Point2f);
+bool overlaps(Mbr); 
+bool inside(Point2f);
+bool insideOrTouch(Point2f);
+bool contained(Mbr);
+bool touch(Mbr);
+Mbr intersect(Mbr);
+void expand(Mbr);
+````
+
+事实上更加合理地操作应该是定义一些拓扑关系枚举，然后进行拓扑分析即可（见[空间关系](http://en.wikipedia.org/wiki/Spatial_relation)）：
+````C++
+enum SpatialRelation {
+    Equal = 0x0001;
+    Disjoint = 0x0002;
+    Intersect = 0x0004;
+    Touches = 0x0008;
+    Cover = 0x0010;
+    Contain = 0x0020;
+    CoveredBy = 0x0040;
+    Within = 0x0080;
+};
+````
+
+那么如果学习 ESRI 的做法，只要给Geometry添加一个接口，以及声明一个拓扑操作 TopologyOp， 具备如下接口：
+````C++
+SpatialRelation Geometry::relationTo(Geometry);
+SpatialRelation getRelation(Geometry, Geometry);
+````
+就行了。
+
+这次暂时不这么做，如果右面有需要再说(TODO)。
+
+那么大概Mbr有如下代码清单：
+````C++
+void reset() { pt_ll = Point2f(0.f,0.f);  pt_ur = Point2f(-1.f,-1.f); }
+
+bool valid() const { return pt_ur.x() >= pt_ll.x(); }
+
+float area() const { return (pt_ur.x() - pt_ll.x())*(pt_ur.y() - pt_ll.y());}
+
+void addPoint(Point2f pt) {
+    if (!valid()) {
+        pt_ll = pt_ur = pt;  
+        return;
+    }
+    
+    pt_ll.x() = std::min(pt_ll.x(),pt.x());  
+    pt_ll.y() = std::min(pt_ll.y(),pt.y());
+    pt_ur.x() = std::max(pt_ur.x(),pt.x());
+    pt_ur.y() = std::max(pt_ur.y(),pt.y());
+}
+
+bool overlaps(const Mbr& that) {
+    // Basic inclusion cases
+    if ((that.insideOrTouch(pt_ll) || that.insideOrTouch(pt_ur) || that.insideOrTouch(Point2f(pt_ll.x(),pt_ur.y())) || that.insideOrTouch(Point2f(pt_ur.x(),pt_ll.y()))) ||
+        (insideOrTouch(that.pt_ll) || insideOrTouch(that.pt_ur) || insideOrTouch(Point2f(that.pt_ll.x(),that.pt_ur.y())) || insideOrTouch(Point2f(that.pt_ur.x(),that.pt_ll.y()))))
+        return true;
+    
+    // Now for the skinny overlap cases
+    if ((that.pt_ll.x() <= pt_ll.x() && pt_ur.x() <= that.pt_ur.x() &&
+         pt_ll.y() <= that.pt_ll.y() && that.pt_ur.y() <= pt_ur.y()) ||
+        (pt_ll.x() <= that.pt_ll.x() && that.pt_ur.x() <= pt_ur.x() &&
+         that.pt_ll.y() <= pt_ll.y() && pt_ur.y() <= that.pt_ur.y()))
+        return true;
+    if ((pt_ll.x() <= that.pt_ll.x() && that.pt_ur.x() <= pt_ur.x() &&
+         that.pt_ll.y() <= pt_ll.y() && pt_ur.y() <= that.pt_ur.y()) ||
+        (that.pt_ll.x() <= pt_ll.x() && pt_ur.x() <= that.pt_ur.x() &&
+         pt_ll.y() <= that.pt_ll.y() && that.pt_ur.y() <= pt_ur.y()))
+        return true;
+    
+    return false;
+}
+
+bool inside(Point2f pt) const { 
+    return ((pt_ll.x() < pt.x()) && (pt_ll.y() < pt.y()) && (pt.x() < pt_ur.x()) && (pt.y() < pt_ur.y()));
+}
+
+bool insideOrTouch(Point2f pt) const { 
+    return ((pt_ll.x() <= pt.x()) && (pt_ll.y() <= pt.y()) && (pt.x() <= pt_ur.x()) && (pt.y() <= pt_ur.y())); 
+}
+
+bool contained(const Mbr &that) { 
+    return that.insideOrTouch(pt_ll) && that.insideOrTouch(pt_ur); 
+}
+
+Mbr intersect(const Mbr &that) const {
+    Mbr out;
+    out.ll().x() = std::max(ll().x(),that.ll().x());
+    out.ll().y() = std::max(ll().y(),that.ll().y());
+    out.ur().x() = std::min(ur().x(),that.ur().x());
+    out.ur().y() = std::min(ur().y(),that.ur().y());
+        
+    return out;
+}
+
+void expand(const Mbr &that) {
+    addPoint(that.pt_ll);
+    addPoint(that.pt_ur);
+}
+````
+
+3. 其他几何模型
+---
+因为是简单尝试，因此尽可能地在不损失完整性的情况下简化模型。所以我们暂时把MultiPoint、 Polyline 和 Polygon 都表示成Point[]。对于Polygon，**不考虑自相交情况，不考虑岛和多环结构**。对于一个几何操作，求Mbr、Area是最基本的，外加一些叠加等得操作，直接给了一组方法即可。
+
+因此大致可以得到以下几个方法：
+````C++
+typedef std::vector<Point2f> Geometry;
+Mbr getMbr(const Geometry&);
+float getArea(const Geoemtry&);
+bool pointInPolygon(const Point2f&,const Geometry&);
+bool convexPolygonIntersect(const Geometry&, const Geometry&);
+bool lineIntersect(Point2f start0, Point2f end0, Point2f start1, Point2f end1, Point2f* output);
+void clipHomogeneousPolygon(const std::vector<Eigen::Vector4d> &pts,std::vector<Eigen::Vector4d> &outPts);
+Point2f closestPointOnLineSegment(const Point2f &p0,const Point2f &p1,const Point2f &pt);
+````
+
+具体实现如下：
+````C++
+Mbr getMbr(const Geometry& poly) {
+    if(poly.size() == 0) return Mbr;
+    float minx, miny, maxx, maxy;
+    minx=maxx=poly[0].x();
+    miny=maxy=poly[0].y();
+    for (unsigned int ii=0;ii<poly.size();ii++) {
+        if(poly[ii].x()>maxx) maxx=poly[ii].x();
+        if(poly[ii].x()<minx) minx=poly[ii].x();
+        if(poly[ii].y()>maxy) maxy=poly[ii].y();
+        if(poly[ii].y()>miny) miny=poly[ii].y();
+    }
+    return Mbr(Point2f(minx,miny), Point2f(maxx,maxy));
+}
+
+// http://geomalgorithms.com/a01-_area.html
+float getArea(const Geometry& poly){
+    float area = 0;
+    int  i, j, k;   // indices
+    int n = poly.size();
+    if (n < 3) return 0;  // a degenerate polygon
+
+    for (i=1, j=2, k=0; i<n; i++, j++, k++) {
+        area += poly[i].x() * (poly[j].y() - poly[k].y());
+    }
+    area += poly[0].x() * (poly[1].y() - poly[n-1].y());  // wrap-around term
+    return area / 2.0;
+}
+
+bool pointInPolygon(const Point2f& pt,const Geometry& poly){
+    int ii, jj;
+    bool c = false;
+    for (ii = 0, jj = ring.size()-1; ii < poly.size(); jj = ii++) {
+        if ( ((poly[ii].y()>pt.y()) != (poly[jj].y()>pt.y())) &&
+            (pt.x() < (poly[jj].x()-poly[ii].x()) * (pt.y()-poly[ii].y()) / (poly[jj].y()-poly[ii].y()) + poly[ii].x()) )
+            c = !c;
+    }
+    return c;
+}
+
+bool convexPolygonIntersect(const Geometry& poly0, const Geometry& poly1){
+    Mbr mbr0 = getMbr(poly0); 
+    Mbr mbr1 = getMbr(poly1);
+    return mbr0.overlaps(mbr1);
+}
+
+bool lineIntersect(Point2f start0, Point2f end0, Point2f start1, Point2f end1, Point2f* output) {
+    float denom = (start0.x()-end0.x())*(start1.y()-end1.y()) - (start0.y() - end0.y())*(start1.x() - end1.x());
+    if (denom == 0.0)
+        return false;
+    
+    float termA = (start0.x() * end0.y() - start0.y() * end0.x());
+    float termB = (start1.x() * end1.y() - start1.y() * end1.x());
+    output->x() = ( termA * (start1.x() - end1.x()) - (start0.x() - end0.x()) * termB)/denom;
+    output->y() = ( termA * (start1.y() - end1.y()) - (start0.y() - end0.y()) * termB)/denom;
+    
+    return true;
+}
+
+Point2f closestPointOnLineSegment(const Point2f &p0,const Point2f &p1,const Point2f &pt) {
+    float dx = p1.x()-p0.x(), dy = p1.y()-p0.y();
+    float denom = dx*dx+dy*dy;
+    
+    if (denom == 0.0) return p0;
+    
+    float u = ((pt.x()-p0.x())*(p1.x()-p0.x())+(pt.y()-p0.y())*(p1.y()-p0.y()))/denom;
+    
+    if (u <= 0.0) return p0;
+    if (u >= 1.0) return p1;
+
+    return Point2f(p0.x()+dx*u,p0.y()+dy*u);
+}
+
+````
+
+4. 其他结构
+---
+几何类型基本就是这些了，如果以后用到，可以逐步添加，但是除了这些，可能还需要OpenGL ES相关的结构，比如颜色、纹理等。
+
+颜色无非就是ARGB：
+````C++
+class Color
+{
+public:
+    Color() { }
+    Color(unsigned char r,unsigned char g,unsigned char b,unsigned char a) : r(r), g(g), b(b), a(a) { }
+    Color(unsigned char r,unsigned char g,unsigned char b) : r(r), g(g), b(b), a(255) { }
+    
+    /// Returns an an array of 4 floats
+    void asUnitFloats(float *ret) const { ret[0] = (float)r / 255.0;  ret[1] = (float)g / 255.0; ret[2] = (float)b / 255.0; ret[3] = (float)a / 255.0; }
+    
+    bool operator == (Color &that) const { return (r == that.r && g == that.g && b == that.b && a == that.a); }
+    bool operator == (Color that) const { return (r == that.r && g == that.g && b == that.b && a == that.a); }
+    Color operator * (float alpha) const { return Color(r*alpha,g*alpha,b*alpha,a*alpha); }
+	
+    unsigned char r,g,b,a;
+};
+```` 
+
+其他就是TexCoord等的封装，等到具体要实现了再说吧。
+
+{# Local Variables: #}
+{# mode: markdown   #}
+{# End:             #}
