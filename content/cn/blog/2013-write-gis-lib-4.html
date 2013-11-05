@@ -1,0 +1,478 @@
+---
+title: 一步一步写GIS库 4.OpenGL ES 2 的封装
+keywords: "GIS, 邯郸学步"
+uuid: 5f6db065-38d1-4b64-af20-de632aa0f666
+---
+
+0. 基础知识
+---
+
+接下来是OpenGL ES 2 的封装，关于 OpenGL ES 2， 可以看看这个[规范](http://www.khronos.org/registry/gles/specs/2.0/es_full_spec_2.0.25.pdf) 。
+
+对于一个OpenGL ES 2 的程序，首先需要一个用来绘制的窗体（EGL API，iOS自己实现了EAGLView版本），将这个窗体添加到帧缓冲（FrameBuffer）中。然后分配一个OpenGL ES Context 关联到窗体中，有了这个Context，就可以利用GL的函数命令进行 点线面绘制、颜色光线渲染以及空间仿射变换了。
+
+对于硬件设备对OpenGL ES实现差异，基本上都在窗体的绑定上面（EGL部分），对OpenGL ES的封装也会到这一层上面。
+
+GL的函数的范式如下：
+![2013-11-05 7 47 33](https://f.cloud.github.com/assets/3690179/1473044/84b394fc-4610-11e3-8177-a8e3c2e91641.png)
+
+基本的GL操作流程：
+![2013-11-05 8 44 47](https://f.cloud.github.com/assets/3690179/1473343/0a9c5624-4618-11e3-973f-81c0e260cb06.png)
+
+对GL来说，有7种绘制的对象，其属性集使用Vertex Arrays来表示的。这七种分别为：
+
+1. Point : 一堆独立的点
+2. Connected Line Segments : 一堆首位连接的线段形成的线段
+3. Line Segment Loops : 一堆首位相连的线段形成的环
+4. Separated Line Segments : 一堆独立的线段
+5. Triangle Strips
+6. Triangle Fans
+7. Separated Triangle
+
+后三者的区别如下：
+> 例如有传入一个数组有6个点分别为： P0, P1, P2, P3, P4, P5
+> 那么:
+> Triangle Strips： 4个三角形： {P0, P1, P2}, {P2, P1, P3}, {P2, P3, P4}, {P4, P3, P5}
+> Triangle Fans:  4个三角形： {P0, P1, P2}, {P0, P2, P3}, {P0, P3, P4}, {P0, P4, P5}
+> Separated Triangle: 两个三角形： {P0, P1, P2}, {P3, P4, P5}
+
+处理过程：
+![2013-11-05 8 50 37](https://f.cloud.github.com/assets/3690179/1473373/dbe4e5fc-4618-11e3-8398-361c2b9b1bcf.png)
+
+那么Vertex Arrays又是什么东西呢？
+Vertex Arrays 准确地说应该是顶点数据在客户端的存储位置（这就涉及 GL2 可编程的概念），服务器端的存放位置成为 Buffer Objects。
+
+void **VertexAttribPointer**( uint *index*, int *size*, enum *type*, boolean *normalized*, sizei *stride*, const void * *pointer* );
+
+通过`void EnableVertexAttribArray( uint index )` 和 `void DisableVertexAttribArray( uint index )` 两个方法启用和禁用。
+
+Vertex Arrays 的元素通过`DrawArrays` 和 `DrawElements` 两个命令传递给GL。
+
+Buffer Objects 不知道中文怎么描述：
+
+>  The vertex data arrays described in section 2.8 are stored in client memory. It is
+sometimes desirable to store frequently used client data, such as vertex array data,
+in high-performance server memory. GL buffer objects provide a mechanism that
+clients can use to allocate, initialize, and render from such memory.
+
+前面提到的DrawArrays和DrawElements里，处理顶点的叫做顶点着色器了(Vertex Shader)，那么这货又是啥？
+
+>顶点着色器处理每个顶点，将顶点的空间位置投影在屏幕上，即计算顶点的二维坐标。同时，它也负责顶点的深度缓冲（Z-Buffer）的计算。顶点着色器可以掌控顶点的位置、颜色和纹理坐标等属性，但无法生成新的顶点。顶点着色器的输出传递到流水线的下一步。如果有之后定义了几何着色器，则几何着色器会处理顶点着色器的输出数据，否则，光栅化器继续流水线任务。[*维基百科*](http://zh.wikipedia.org/wiki/%E7%9D%80%E8%89%B2%E5%99%A8)
+
+着色器的通过GLSL（OpenGL ES Shading Language）描述，于是我们开始接触GL的可编程部分了。那么如何使用顶点着色器呢？
+
+1. 源码编写
+2. 载入到着色器对象(Shader Object)中
+3. 编译(Compile)
+
+预编译成二进制的源码可以直接载入到着色器对象中。然后这个着色器对象附加到Program对象中。然后Program 对象进行链接(Link) - 将附加的着色器全生成可执行代码。除了顶点着色器之外，还有片元着色器 (Fragment Shader)，也可以被编译、附加、链接。片段着色器主要用于栅格化过程中 (Rasterization)。 一个可用的Program 必须包含一个顶点着色器和一个片段着色器。
+
+上面描述的过程应该表示成这样：
+````
+CreateShader
+     ↓
+ShaderSource    CreateProgram
+     ↓                ↓
+CompileShader →  AttachShader
+                      ↓
+                 LinkProgram
+                      ↓
+                  UseProgram
+````
+
+可编程那么就会有传入传出变量，对于着色器的变量，主要有三种： 
+
+1. Vertex Attributes
+2. Uniform Variable
+3. Varying Variable
+
+这些变量基本都有 Get*Location / GetActive* 等方法来获得传入位置和设置对应值。
+
+接下来就是着色器的执行了。
+
+当执行 ` UseProgram` 之后, 着色器便开始工作。着色器工作的时候需要注意以下几点:
+
++ 纹理使用
++ 验证程序(validation program)
++ 其他未定义行为
+
+具体解释将在其他额外篇章中提到。
+
+着色器处理完之后交由**图元装配(Primitive Assembly)**，处理的步骤如下：
+
+1. 透视除法
+2. 视点映射
+3. 裁剪
+4. Clipping Varying Outputs
+
+转换过程如下：
+![2013-11-06 9 37 03](https://f.cloud.github.com/assets/3690179/1479443/f75381c0-4683-11e3-8620-9bf341637850.png)
+
+接下来讲讲**光栅化**
+
+光栅化的过程如下：
+![2013-11-06 9 38 06](https://f.cloud.github.com/assets/3690179/1479447/21049fae-4684-11e3-8537-8c4099d05b8c.png)
+
+光栅化本身一个很重要的过程，包含点线面的光栅化、纹理贴图、映射、剪裁等过程。但我本身对其一知半解，等到了解多了再来谈，现在接下来讲讲前面提到的光栅化中重要的着色器—— **片元着色器** ( Fragment Shader )
+
+片段着色器的创建、编程、附加和执行过程和 Vertex Shader 类似。
+
+接下就是就是讲讲每个片段操作了。
+
+片元操作 ( Fragment Operation ) 的操作流程如下：
+
+![2013-11-06 10 04 25](https://f.cloud.github.com/assets/3690179/1479582/ea281a16-4687-11e3-9413-7cff2072f9b1.png)
+
++ Pixel Ownership Test:该测试决定像素在 framebuffer 中的位置是不是为当前 OpenGL ES 所有。也就是说测试某个像素是否对用户可见或者被重叠窗口所阻挡；
++ Scissor Test：剪裁测试，判断像素是否在由 glScissor 定义的剪裁矩形内，不在该剪裁区域内的像素就会被剪裁掉；
++ Stencil Test：模版测试，将模版缓存中的值与一个参考值进行比较，从而进行相应的处理；
++ Depth Test：深度测试，比较下一个片段与帧缓冲区中的片段的深度，从而决定哪一个像素在前面，哪一个像素被遮挡；
++ Blending：混合，混合是将片段的颜色和帧缓冲区中已有的颜色值进行混合，并将混合所得的新值写入帧缓冲；
++ Dithering：抖动，抖动是使用有限的色彩让你看到比实际图象更多色彩的显示方式，以缓解表示颜色的值的精度不够大而导致的颜色剧变的问题。
++ Framebuffer：这是流水线的最后一个阶段，Framebuffer 中存储这可以用于渲染到屏幕或纹理中的像素值，也可以从Framebuffer 中读回像素值，但不能读取其他值（如深度值，模版值等）。[*飘飘白云*](http://blog.csdn.net/kesalin/article/details/8223649)
+
+1.开始
+---
+根据前面简单地对OpenGL ES 2 的介绍，我们知道对于着色器比较重要的传入变量是**Attribute**和**Uniform**。
+
+对于Attribute，封装成如下：
+
+````C++
+class OpenGLESAttribute
+{
+public:
+    OpenGLESAttribute() : index(0), size(0) { }
+    OpenGLESAttribute(const std::string &name) : name(name) { }
+    bool operator < (const OpenGLESAttribute &that) const { return name < that.name; }
+    
+    /// Return true if this uniform is an array
+    bool isArray() { return size != 0; }
+    /// Return true if the type matches
+    bool isType(GLenum inType) { return inType == type; }
+
+    /// Name of the per vertex attribute
+    std::string name;
+    /// Index we'll use to address the attribute
+    GLuint index;
+    /// If an array, this is the length
+    GLint size;
+    /// Attribute data type
+    GLenum type;
+};
+````
+对于Uniform，不止name、index、size和type，还需要知道是不是纹理，所以 对于Uniform：
+
+````C++
+class OpenGLESUniform
+{
+public:
+    OpenGLESUniform() : index(0), size(0), isSet(false), isTexture(false) { }
+    OpenGLESUniform(const std::string &name) : name(name) { }
+    
+    /// Return true if this uniform is an array
+    bool isArray() { return size != 0; }
+    /// Return true if the type matches
+    bool isType(GLenum inType) { return inType == type; }
+    
+    /// Name of the uniform within the program
+    std::string name;
+    /// Index we'll use to address the uniform
+    GLuint index;
+    /// If the uniform is an array, this is the length
+    GLint size;
+    /// Uniform data type
+    GLenum type;
+    /// Set if we know this is a texture
+    bool isTexture;
+        
+    /// Current value (if set)
+    bool isSet;
+    union {
+        int iVals[4];
+        float fVals[4];
+        float mat[16];
+    } val;
+};
+````
+
+一般渲染过程都会放在一个/组专门的线程里头去做，那么就会涉及多线程，为了时Program在多线程中可控，需要给每个Program一个实例ID，因此我们设计一个类 `Identifiable` 来生成ID：
+
+````C++
+/** Simple Identities are just numbers we use to refer to objects within the
+    rendering system.  The idea is that some operations are dangerous enough
+    with multiple threads (and prone to error) that it's just safer to request
+    an operation on a given ID rather than letting the developer muck around
+    in the internals.
+  */
+typedef unsigned long long SimpleIdentity;
+    
+/// This is the standard empty identity.  It means there were none of something
+///  or it's just ignored.
+static const SimpleIdentity EmptyIdentity = 0;
+    
+/// A set of identities.  Often passed back as query result.
+typedef std::set<SimpleIdentity> SimpleIDSet;
+
+/** Simple unique ID base class.
+    If you subclass this you'll get your own unique ID
+    for the given object instance.  See the SimpleIdentity
+    for an explanation of why we use these.
+ */
+class Identifiable
+{
+public:
+	/// Construct with a new ID
+	Identifiable();
+    /// Construct with an existing ID.  Used for searching mostly.
+    Identifiable(SimpleIdentity oldId) : myId(oldId) { }
+	virtual ~Identifiable() { }
+    
+	/// Return the identity
+	SimpleIdentity getId() const { return myId; }
+	
+	/// Think carefully before setting this
+    /// In most cases you should be using the one you inherit
+	void setId(SimpleIdentity inId) { myId = inId; }
+
+	/// Generate a new ID without an object.
+    /// We use this in cases where we're going to be creating an
+    ///  Identifiable subclass, but haven't yet.
+	static SimpleIdentity genId();
+    
+    /// Used for sorting
+    bool operator < (const Identifiable &that) const { return myId < that.myId; }
+		
+protected:
+	SimpleIdentity myId;
+};
+
+/// Reference counted version of Identifiable
+typedef boost::shared_ptr<Identifiable> IdentifiableRef;
+	
+/// Used to sort identifiables in a set or similar STL container
+typedef struct
+{
+	bool operator () (const Identifiable *a,const Identifiable *b) { return a->getId() < b->getId(); }
+} IdentifiableSorter;
+    
+/// Used to sort identifiable Refs in a container
+typedef struct
+{
+	bool operator () (const IdentifiableRef a,const IdentifiableRef b) { return a->getId() < b->getId(); }    
+} IdentifiableRefSorter;
+
+/// Implementation
+static unsigned long curId = 0;
+
+Identifiable::Identifiable()
+{ 
+	myId = ++curId; 
+}
+	
+SimpleIdentity Identifiable::genId()
+{
+	return ++curId;
+}
+
+````
+
+接下来分析Program需要什么：
+1. Program 的句柄肯定是需要的
+2. Vertex Shader 和 Fragment Shader 也是需要的
+3. 一堆输入参数
+
+为了方便调试，我们给Program一个名字， 一个光线更新跟踪，所以有：
+所以：
+````C++
+class OpenGLES2Program : public Identifiable {
+    protected:
+    std::string name;
+    GLuint program;
+    GLuint vertShader;
+    GLuint fragShader;
+    double lightsLastUpdated;
+    // Uniforms sorted for fast lookup
+    std::set<OpenGLESUniform *,UniformNameSortStruct> uniforms;
+    // Attributes sorted for fast lookup
+    std::set<OpenGLESAttribute *,AttributeNameSortStruct> attrs;
+}
+````
+
+其中 `UniformNameSortStruct` 和 `AttributeNameSortStruct` 有：
+
+````C++
+typedef struct
+{
+    bool operator()(const OpenGLESAttribute *a,const OpenGLESAttribute *b)
+    {
+        return a->name < b->name;
+    }
+} AttributeNameSortStruct;
+
+typedef struct
+{
+    bool operator()(const OpenGLESUniform *a,const OpenGLESUniform *b)
+    {
+        return a->name < b->name;
+    }
+} UniformNameSortStruct;
+````
+
+方法上检查合理性、查找uniform、纹理、光线、资源清理等，如下：
+````C++
+/** Representation of an OpenGL ES 2.0 program.  It's an identifiable so we can
+    point to it generically.  Otherwise, pretty basic.
+ */
+class OpenGLES2Program : public Identifiable
+{
+public:
+    OpenGLES2Program();
+    //virtual ~OpenGLES2Program();
+    
+    /// Used only for comparison
+    OpenGLES2Program(SimpleIdentity theId) : Identifiable(theId), lightsLastUpdated(0.0) { }
+
+    /// Initialize with both shader programs
+    OpenGLES2Program(const std::string &name,const std::string &vShaderString,const std::string &fShaderString);
+    
+    /// Return true if it was built correctly
+    bool isValid();
+        
+    /// Search for the given uniform name and return the info.  NULL on failure.
+    OpenGLESUniform *findUniform(const std::string &uniformName);
+
+    /// Set the given uniform to the given value.
+    /// These check the type and cache a value to save on duplicate gl calls
+    bool setUniform(const std::string &name,float val);
+    bool setUniform(const std::string &name,const Eigen::Vector2f &vec);
+    bool setUniform(const std::string &name,const Eigen::Vector3f &vec);
+    bool setUniform(const std::string &name,const Eigen::Vector4f &vec);
+    bool setUniform(const std::string &name,const Eigen::Matrix4f &mat);
+    bool setUniform(const std::string &name,int val);
+    
+    /// Tie a given texture ID to the given name.
+    /// We have to set these up each time before drawing
+    bool setTexture(const std::string &name,GLuint val);
+    
+    /// Check for the specific attribute associated with WhirlyKit lights
+    bool hasLights();
+    bool setLights(OpenGLESLight *lights,double lastUpdated,OpenGLESMaterial *mat,Eigen::Matrix4f &modelMat);
+
+    /// Search for the given attribute name and return the info.  NULL on failure.
+    const OpenGLESAttribute *findAttribute(const std::string &attrName);
+    
+    /// Return the name (for tracking purposes)
+    const std::string &getName() { return name; }
+    
+    /// Return the GL Program ID
+    GLuint getProgram() { return program; }
+    
+    /// Bind any program specific textures right before we draw.
+    /// We get to start at 0 and return however many we bound
+    int bindTextures();
+
+    /// Clean up OpenGL resources, rather than letting the destructor do it (which it will)
+    void cleanUp();
+   
+protected:
+    … 
+};
+````
+
+在设置光线时，需要其他的其他类：
+````C++
+class OpenGLESLight{
+pubic:
+    OpenGLESLight() : _viewDependent(true) {}
+    virtual ~OpenGLESLight();
+    
+    bool viewDependent() const { return _viewDependent;}
+    Eigen::Vector3f &pos() const { return _pos;}
+    Eigen::Vector4f &ambient() const { return _ambient;}
+    Eigen::Vector4f &diffuse() const { return _diffuse;}
+    Eigen::Vector4f &specular() const { return _specular;}
+    bool bindToProgram(OpenGLES2Program *program, GLuint index, Eigen::Matrix4f &modelMat);
+protected:
+    bool _viewDependent;
+    Eigen::Vector3f _pos;
+    Eigen::Vector4f _ambient;
+    Eigen::Vector4f _diffuse;
+    Eigen::Vector4f _specular;
+};
+
+class OpenGLESMaterial{
+public:
+    OpenGLESMaterial(): _ambient(1.f,1.f,1.f,1.f), _diffuse(1.f,1.f,1.f,1.f), 
+                        _specular(0.f,0.f,0.f,0.f), _specularExponent(1.0){ }
+    virtual ~OpenGLESMaterial();
+    Eigen::Vector4f &ambient() const { return _ambient;}
+    Eigen::Vector4f &diffuse() const { return _diffuse;}
+    Eigen::Vector4f &specular() const { return _specular;}
+    bool bindProgram(OpenGLES2Program *program);
+protected:
+    Eigen::Vector4f _ambient, _diffuse, _specular;
+    float _specularExponent;
+}
+````
+两个类的 bindProgram 分别如下：
+````C++
+bool OpenGLESLight:: bindToProgram(OpenGLES2Program *program, GLuint index, Eigen::Matrix4f &modelMat) {
+    char name[200];
+    sprintf(name,"light[%d].viewdepend",index);
+    const OpenGLESUniform *viewDependUni = program->findUniform(name);
+    sprintf(name,"light[%d].direction",index);
+    const OpenGLESUniform *dirUni = program->findUniform(name);
+    sprintf(name,"light[%d].halfplane",index);
+    const OpenGLESUniform *halfUni = program->findUniform(name);
+    sprintf(name,"light[%d].ambient",index);
+    const OpenGLESUniform *ambientUni = program->findUniform(name);
+    sprintf(name,"light[%d].diffuse",index);
+    const OpenGLESUniform *diffuseUni = program->findUniform(name);
+    sprintf(name,"light[%d].specular",index);
+    const OpenGLESUniform *specularUni = program->findUniform(name);
+    
+    Vector3f dir = _pos.normalized();
+    Vector3f halfPlane = (dir + Vector3f(0,0,1)).normalized();
+    
+    if (viewDependUni) {
+        glUniform1f(viewDependUni->index, (_viewDependent ? 0.0 : 1.0));
+        CheckGLError("OpenGLESLight::bindToProgram glUniform1f");
+    }
+    if (dirUni) {
+        glUniform3f(dirUni->index, dir.x(), dir.y(), dir.z());
+        CheckGLError("OpenGLESLight::bindToProgram glUniform3f");
+    }
+    if (halfUni) {
+        glUniform3f(halfUni->index, halfPlane.x(), halfPlane.y(), halfPlane.z());
+        CheckGLError("OpenGLESLight::bindToProgram glUniform3f");        
+    }
+    if (ambientUni) {
+        glUniform4f(ambientUni->index, _ambient.x(), _ambient.y(), _ambient.z(), _ambient.w());
+        CheckGLError("OpenGLESLight::bindToProgram glUniform4f");
+    }
+    if (diffuseUni) {
+        glUniform4f(diffuseUni->index, _diffuse.x(), _diffuse.y(), _diffuse.z(), _diffuse.w());
+        CheckGLError("OpenGLESLight::bindToProgram glUniform4f");
+    }
+    if (specularUni) {
+        glUniform4f(specularUni->index, _specular.x(), _specular.y(), _specular.z(), _specular.w());
+        CheckGLError("OpenGLESLight::bindToProgram glUniform4f");
+    }
+    
+    return (dirUni && halfUni && ambientUni && diffuseUni && specularUni);
+}
+
+bool OpenGLESMaterial::bindProgram(OpenGLES2Program *program) {
+    return program->setUniform("material.ambient", _ambient) &&
+           program->setUniform("material.diffuse", _diffuse) &&
+           program->setUniform("material.specular", _specular) &&
+           program->setUniform("material.specular_exponent", _specularExponent);
+}
+````
+
+至此，基本的封装差不多就这样了，而其他的具体的渲染代码，需要等到渲染部分才能确定，而且有些还是平台相关的代码（因为渲染到具体窗体就需要EGL）。下一篇说说 SQLite 的封装吧。
+
+
+{# Local Variables: #}
+{# mode: markdown   #}
+{# End:             #}
