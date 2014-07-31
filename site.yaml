@@ -18,7 +18,7 @@ plugins:
   - extensions.typo.WidontPlugin
 context:
   data:
-    base: http://vincent.bernat.im
+    base: http://goby.github.io
     languages:
       fr: Français
       en: English
@@ -29,11 +29,11 @@ meta:
   created: git
   modified: git
   language: en
-  analytics: UA-21482482-4
+#  analytics: UA-21482482-4
   disqus: luffycx
   keywords: "debian, python, network, vincent bernat"
 less:
-  app: /usr/bin/lessc
+  app: D:\goby\bin\less\lessc.cmd
 markdown:
   extensions:
     - codehilite
@@ -85,3 +85,8 @@ tagger:
       descr_fr: "Bureau"
     "debian":
       descr: "Debian"
+publisher:
+    github:
+        type: hyde.ext.publishers.dvcs.Git
+        path: ../goby.github.io
+        url: git@github.com:goby/goby.github.io.git
