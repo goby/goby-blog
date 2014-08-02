@@ -21,14 +21,14 @@ context:
     base: http://goby.github.io
     languages:
       cn: 简体中文
-      en: English
+#      en: English
 meta:
   nodemeta: meta.yaml
   author: Tanglim LUA
-  title: "Walk in the Deep Sea"
+  title: "Walk Deep in the Sea"
   created: git
   modified: git
-  language: en
+  language: cn
 #  analytics: UA-21482482-4
   disqus: gov2
   keywords: "gis, python, performance, netease"
@@ -52,7 +52,7 @@ sorter:
     filters:
       source.kind: html
       meta.listable: true
-  time_fr:
+  time_cn:
     attr:
       - meta.created
       - relative_path
@@ -60,7 +60,7 @@ sorter:
     filters:
       source.kind: html
       meta.listable: true
-      meta.language: fr
+      meta.language: cn
   time_en:
     attr:
       - meta.created
@@ -82,8 +82,7 @@ tagger:
     "snmp":
       descr: "SNMP"
     "desktop":
-      descr_en: "Desktop"
-      descr_fr: "Bureau"
+      descr: "Desktop"
     "debian":
       descr: "Debian"
 publisher:

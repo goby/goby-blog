@@ -1,1 +1,3 @@
-../../en/blog/meta.yaml
+listable: true
+comments: true
+class: article
