@@ -4,15 +4,15 @@ default_block: article
 language: cn
 menu:
   -
-     name: "Projets"
-     page: "projets.html"
+     name: "Projects"
+     page: "projects.html"
   -
      name: "Blog"
      page: "blog/"
 l10n:
-  otherlinks: "Autres liens"
-  translations: "Aussi disponible en"
-  comments: "Voir les commentaires ou en laisser un (avec Disqus)"
-  attachments: "Documents liés"
-  tags: "Classé dans"
-  share: "Partager cet article"
+  otherlinks: "其他"
+  translations: "其他可用语言"
+  comments: "雁过留痕(Disqus)"
+  attachments: "附件"
+  tags: "分类"
+  share: "分享TA"

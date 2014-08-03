@@ -73,18 +73,16 @@ sorter:
 tagger:
   sorter: time
   tags:
-    "ssl":
-      descr: "SSL/TLS"
-    "network":
-      descr_en: "Network"
-      descr_fr: "Réseau"
-      descr_cn: "网络"
-    "snmp":
-      descr: "SNMP"
-    "desktop":
-      descr: "Desktop"
-    "debian":
-      descr: "Debian"
+    "tutorial":
+      descr: "邯郸学步"
+    "tech":
+      descr: "夜航船"
+    "misc":
+      descr: "酉阳杂俎"
+    "myself":
+      descr: "空山梵呗"
+    "work":
+      descr: "涉世之初"
 publisher:
     github:
         type: hyde.ext.publishers.dvcs.Git
