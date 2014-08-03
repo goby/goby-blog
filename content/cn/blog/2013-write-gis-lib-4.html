@@ -5,7 +5,7 @@ uuid: 5f6db065-38d1-4b64-af20-de632aa0f666
 ---
 
 0. 基础知识
----
+====
 
 接下来是OpenGL ES 2 的封装，关于 OpenGL ES 2， 可以看看这个[规范](http://www.khronos.org/registry/gles/specs/2.0/es_full_spec_2.0.25.pdf) 。
 
@@ -30,6 +30,7 @@ GL的函数的范式如下：
 7. Separated Triangle
 
 后三者的区别如下：
+
 > 例如有传入一个数组有6个点分别为： P0, P1, P2, P3, P4, P5
 > 那么:
 > Triangle Strips： 4个三角形： {P0, P1, P2}, {P2, P1, P3}, {P2, P3, P4}, {P4, P3, P5}
@@ -39,7 +40,7 @@ GL的函数的范式如下：
 处理过程：
 ![2013-11-05 8 50 37](https://f.cloud.github.com/assets/3690179/1473373/dbe4e5fc-4618-11e3-8398-361c2b9b1bcf.png)
 
-那么Vertex Arrays又是什么东西呢？
+那么 Vertex Arrays 又是什么东西呢？
 Vertex Arrays 准确地说应该是顶点数据在客户端的存储位置（这就涉及 GL2 可编程的概念），服务器端的存放位置成为 Buffer Objects。
 
 void **VertexAttribPointer**( uint *index*, int *size*, enum *type*, boolean *normalized*, sizei *stride*, const void * *pointer* );
@@ -50,16 +51,13 @@ Vertex Arrays 的元素通过`DrawArrays` 和 `DrawElements` 两个命令传递�
 
 Buffer Objects 不知道中文怎么描述：
 
->  The vertex data arrays described in section 2.8 are stored in client memory. It is
-sometimes desirable to store frequently used client data, such as vertex array data,
-in high-performance server memory. GL buffer objects provide a mechanism that
-clients can use to allocate, initialize, and render from such memory.
+>  The vertex data arrays described in section 2.8 are stored in client memory. It is sometimes desirable to store frequently used client data, such as vertex array data, in high-performance server memory. GL buffer objects provide a mechanism that clients can use to allocate, initialize, and render from such memory.
 
 前面提到的DrawArrays和DrawElements里，处理顶点的叫做顶点着色器了(Vertex Shader)，那么这货又是啥？
 
 >顶点着色器处理每个顶点，将顶点的空间位置投影在屏幕上，即计算顶点的二维坐标。同时，它也负责顶点的深度缓冲（Z-Buffer）的计算。顶点着色器可以掌控顶点的位置、颜色和纹理坐标等属性，但无法生成新的顶点。顶点着色器的输出传递到流水线的下一步。如果有之后定义了几何着色器，则几何着色器会处理顶点着色器的输出数据，否则，光栅化器继续流水线任务。[*维基百科*](http://zh.wikipedia.org/wiki/%E7%9D%80%E8%89%B2%E5%99%A8)
 
-着色器的通过GLSL（OpenGL ES Shading Language）描述，于是我们开始接触GL的可编程部分了。那么如何使用顶点着色器呢？
+着色器的通过GLSL（OpenGL ES Shading Language）描述，于是我们开始接触 GL 的可编程部分了。那么如何使用顶点着色器呢？
 
 1. 源码编写
 2. 载入到着色器对象(Shader Object)中

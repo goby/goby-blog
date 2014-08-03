@@ -7,415 +7,414 @@ uuid: 5f6db065-38d1-4b64-af20-de632aa0f555
 ~~面试蘑菇街就跪在SQLite的题目上╮(╯▽╰)╭~~
 
 SQLite就不介绍了。IO操作就分成Reader和Writer，所以先设计`StatementReader`、 `StatementWriter`两个类：
-````C++
-class StatementReader {
-protected:
-    void init(sqlite3 *db,const char *,bool justRun=false);
-	
-    bool valid;
-    sqlite3 *db;
-    sqlite3_stmt *stmt;
-    bool isFinalized;
-    int curField;
-};
 
-class StatementWriter {
-protected:
-    void init(sqlite3 *db,const char *);
-	
-    sqlite3_stmt *stmt;
-    bool isFinalized;
-    int curField;
-};
-````
-
-操纵的五种基本类型 int/double/string/bool/blob，所以这两个的类基本的方法就包含获取数据和添加数据。
-
-````C++
-struct Blob{
-        char *data;
-        size_t length;
-        Blob(const char *data, size_t len){
-            data = new char[len];
-            memcpy(this->data, data, len);
-        }
-        
-        ~Blob(){delete []data; data = NULL;}
-    };
-    
-    /**
-     * Encapsulates a SQLite3 statement in a way that does not make me
-     * want to punch someone.
-     **/
-    class StatementReader
-    {
-    public:
-        /// Construct with the statement and maybe just run the damn thing
-        StatementReader(sqlite3 *db,const char *,bool justRun=false);
-        /// Destructor will call finalize
-        ~StatementReader();
-        
-        /// Returns false if initialization failed
-        bool isValid();
-        
-        /// Calls step, expecting a row.
-        /// Returns false if we're done, throws an exception on error
-        bool stepRow();
-        
-        /// You can force a finalize here
-        void finalize();
-        
-        /// Return an int from the current row
-        int getInt();
-        /// Return a double from the current row
-        double getDouble();
-        /// Return an std::string from the current row
-        std::string *getString();
-        /// Return a boolean from the current row
-        bool getBool();
-        /// Return a blob from the current row
-        Blob *getBlob();
-        
+    ::C++
+    class StatementReader {
     protected:
         void init(sqlite3 *db,const char *,bool justRun=false);
-        
+	
         bool valid;
         sqlite3 *db;
         sqlite3_stmt *stmt;
         bool isFinalized;
         int curField;
     };
-    
-    class StatementWriter
-    {
-    public:
-        StatementWriter(sqlite3 *db,const char *);
-        ~StatementWriter();
-        
-        /// Run the insert/update.
-        /// Triggers an exception on failure
-        void go();
-        
-        /// Finalize it (optional)
-        void finalize();
-        
-        /// Add an integer
-        void add(int);
-        /// Add a double
-        void add(double);
-        /// Add a string
-        void add(const std::string&);
-        /// Add a boolean
-        void add(bool);
-        
+
+    class StatementWriter {
     protected:
         void init(sqlite3 *db,const char *);
         
         sqlite3_stmt *stmt;
         bool isFinalized;
         int curField;
-    }; 
-    ///
-    /// sql.cpp
-    ///
-    // Constructor for the read statement
-    StatementReader::StatementReader(sqlite3 *db,const char *stmtStr,bool justRun) {
-        init(db,stmtStr,justRun);
-    }
-    
-    void StatementReader::init(sqlite3 *db,const char *stmtStr,bool justRun) {
-        valid = false;
-        if (!stmtStr)
-            return;
-        
-        this->db = db;
-        stmt = NULL;
-        isFinalized = false;
-        curField = 0;
-        
-        if (sqlite3_prepare_v2(db,stmtStr,-1,&stmt,NULL) != SQLITE_OK)
-            return;
-        
-        if (justRun)
-            stepRow();
-        
-        valid = true;
-    }
-    
-    
-    // Clean up statement
-    StatementReader::~StatementReader() {
-        finalize();
-    }
-    
-    bool StatementReader::isValid() {
-        return valid;
-    }
-	
-    // Step
-    bool StatementReader::stepRow() {
-        if (isFinalized || !stmt || !valid)
-            return false;
-        
-        curField = 0;
-        
-        int ret = sqlite3_step(stmt);
-        if (ret == SQLITE_ROW)
-            return true;
-        if (ret == SQLITE_DONE)
-            return false;
-        
-        throw 1;
-    }
-	
-    // Done with the statement
-    void StatementReader::finalize() {
-        if (!isFinalized && valid) {
-            sqlite3_finalize(stmt);
-            isFinalized = true;
-            stmt = NULL;
-        }
-    }
-	
-    // Return int from the current row
-    int StatementReader::getInt() {
-        if (isFinalized)
-            throw 1;
-        
-        return sqlite3_column_int(stmt, curField++);
-    }
-	
-    // Return double from the current row
-    double StatementReader::getDouble() {
-        if (isFinalized)
-            throw 1;
-        
-        return sqlite3_column_double(stmt, curField++);
-    }
-	
-    // TODO: May leak resource
-    std::string *StatementReader::getString() {
-        if (isFinalized)
-            throw 1;
-        
-        const char *str = (const char *)sqlite3_column_text(stmt, curField++);
-        if (!str)
-            return NULL;
-        else
-            return new std::string(str);
-    }
-	
-    // Return a bool from the current row
-    bool StatementReader::getBool() {
-        if (isFinalized)
-            throw 1;
-        
-        const char *str = (const char *)sqlite3_column_text(stmt, curField++);
-        
-        if (!strcmp(str,"yes"))
-            return true;
-        else
-            return false;
-    }
-    
-    Blob* StatementReader::getBlob() {
-        if (isFinalized)
-            throw 1;
-        
-        const char *blob = (const char *)sqlite3_column_blob(stmt, curField);
-        int blobSize = sqlite3_column_bytes(stmt,curField);
-        curField++;
-        Blob *ret = new Blob(blob, blobSize);
-        return ret;
-    }
-	
-    // Construct a write statement
-    StatementWriter::StatementWriter(sqlite3 *db,const char *stmtStr) {
-        init(db,stmtStr);
-    }
-	
-    void StatementWriter::init(sqlite3 *db,const char *stmtStr) {
-        isFinalized = false;
-        if (sqlite3_prepare_v2(db,stmtStr,-1,&stmt,NULL) != SQLITE_OK)
-            throw 1;
+    };
 
-        curField = 1;
-    }
-	
-    // Destroy a write statement
-    StatementWriter::~StatementWriter() {
-        finalize();
-    }
-	
-    // Run the statement
-    void StatementWriter::go() {
-        if (isFinalized)
-            throw 1;
+操纵的五种基本类型 int/double/string/bool/blob，所以这两个的类基本的方法就包含获取数据和添加数据。
+
+    ::C++
+    struct Blob{
+            char *data;
+            size_t length;
+            Blob(const char *data, size_t len){
+                data = new char[len];
+                memcpy(this->data, data, len);
+            }
+            
+            ~Blob(){delete []data; data = NULL;}
+        };
         
-        if (sqlite3_step(stmt) != SQLITE_DONE)
-            throw 1;
-    }
-	
-    // Finalize the statement
-    void StatementWriter::finalize() {
-        if (!isFinalized) {
-            sqlite3_finalize(stmt);
-            isFinalized = true;
-            stmt = NULL;
+        /**
+         * Encapsulates a SQLite3 statement in a way that does not make me
+         * want to punch someone.
+         **/
+        class StatementReader
+        {
+        public:
+            /// Construct with the statement and maybe just run the damn thing
+            StatementReader(sqlite3 *db,const char *,bool justRun=false);
+            /// Destructor will call finalize
+            ~StatementReader();
+            
+            /// Returns false if initialization failed
+            bool isValid();
+            
+            /// Calls step, expecting a row.
+            /// Returns false if we're done, throws an exception on error
+            bool stepRow();
+            
+            /// You can force a finalize here
+            void finalize();
+            
+            /// Return an int from the current row
+            int getInt();
+            /// Return a double from the current row
+            double getDouble();
+            /// Return an std::string from the current row
+            std::string *getString();
+            /// Return a boolean from the current row
+            bool getBool();
+            /// Return a blob from the current row
+            Blob *getBlob();
+            
+        protected:
+            void init(sqlite3 *db,const char *,bool justRun=false);
+            
+            bool valid;
+            sqlite3 *db;
+            sqlite3_stmt *stmt;
+            bool isFinalized;
+            int curField;
+        };
+        
+        class StatementWriter
+        {
+        public:
+            StatementWriter(sqlite3 *db,const char *);
+            ~StatementWriter();
+            
+            /// Run the insert/update.
+            /// Triggers an exception on failure
+            void go();
+            
+            /// Finalize it (optional)
+            void finalize();
+            
+            /// Add an integer
+            void add(int);
+            /// Add a double
+            void add(double);
+            /// Add a string
+            void add(const std::string&);
+            /// Add a boolean
+            void add(bool);
+            
+        protected:
+            void init(sqlite3 *db,const char *);
+            
+            sqlite3_stmt *stmt;
+            bool isFinalized;
+            int curField;
+        }; 
+        ///
+        /// sql.cpp
+        ///
+        // Constructor for the read statement
+        StatementReader::StatementReader(sqlite3 *db,const char *stmtStr,bool justRun) {
+            init(db,stmtStr,justRun);
         }
-    }
-	
-    // Add an integer to the row data
-    void StatementWriter::add(int iVal) {
-        if (isFinalized) throw 1;
         
-        sqlite3_bind_int(stmt,curField++,iVal);
-    }
-    
-    // Add a double to the row data
-    void StatementWriter::add(double dVal) {
-        if (isFinalized)  throw 1;
+        void StatementReader::init(sqlite3 *db,const char *stmtStr,bool justRun) {
+            valid = false;
+            if (!stmtStr)
+                return;
+            
+            this->db = db;
+            stmt = NULL;
+            isFinalized = false;
+            curField = 0;
+            
+            if (sqlite3_prepare_v2(db,stmtStr,-1,&stmt,NULL) != SQLITE_OK)
+                return;
+            
+            if (justRun)
+                stepRow();
+            
+            valid = true;
+        }
         
-        sqlite3_bind_double(stmt,curField++,dVal);
-    }
-    
-    // Add a string to the row data
-    void StatementWriter::add(const std::string& str) {
-        const char *strData = str.c_str();
-        sqlite3_bind_text(stmt, curField++, strData, -1, SQLITE_STATIC);
-    }
-    
-    // Add a bool to the row data
-    void StatementWriter::add(bool bVal)  {
-        if (isFinalized) throw 1;
         
-        sqlite3_bind_text(stmt, curField++, (bVal ? "yes" : "no"), -1, SQLITE_STATIC);
-    }
-````
+        // Clean up statement
+        StatementReader::~StatementReader() {
+            finalize();
+        }
+        
+        bool StatementReader::isValid() {
+            return valid;
+        }
+        
+        // Step
+        bool StatementReader::stepRow() {
+            if (isFinalized || !stmt || !valid)
+                return false;
+            
+            curField = 0;
+            
+            int ret = sqlite3_step(stmt);
+            if (ret == SQLITE_ROW)
+                return true;
+            if (ret == SQLITE_DONE)
+                return false;
+            
+            throw 1;
+        }
+        
+        // Done with the statement
+        void StatementReader::finalize() {
+            if (!isFinalized && valid) {
+                sqlite3_finalize(stmt);
+                isFinalized = true;
+                stmt = NULL;
+            }
+        }
+        
+        // Return int from the current row
+        int StatementReader::getInt() {
+            if (isFinalized)
+                throw 1;
+            
+            return sqlite3_column_int(stmt, curField++);
+        }
+        
+        // Return double from the current row
+        double StatementReader::getDouble() {
+            if (isFinalized)
+                throw 1;
+            
+            return sqlite3_column_double(stmt, curField++);
+        }
+        
+        // TODO: May leak resource
+        std::string *StatementReader::getString() {
+            if (isFinalized)
+                throw 1;
+            
+            const char *str = (const char *)sqlite3_column_text(stmt, curField++);
+            if (!str)
+                return NULL;
+            else
+                return new std::string(str);
+        }
+        
+        // Return a bool from the current row
+        bool StatementReader::getBool() {
+            if (isFinalized)
+                throw 1;
+            
+            const char *str = (const char *)sqlite3_column_text(stmt, curField++);
+            
+            if (!strcmp(str,"yes"))
+                return true;
+            else
+                return false;
+        }
+        
+        Blob* StatementReader::getBlob() {
+            if (isFinalized)
+                throw 1;
+            
+            const char *blob = (const char *)sqlite3_column_blob(stmt, curField);
+            int blobSize = sqlite3_column_bytes(stmt,curField);
+            curField++;
+            Blob *ret = new Blob(blob, blobSize);
+            return ret;
+        }
+        
+        // Construct a write statement
+        StatementWriter::StatementWriter(sqlite3 *db,const char *stmtStr) {
+            init(db,stmtStr);
+        }
+        
+        void StatementWriter::init(sqlite3 *db,const char *stmtStr) {
+            isFinalized = false;
+            if (sqlite3_prepare_v2(db,stmtStr,-1,&stmt,NULL) != SQLITE_OK)
+                throw 1;
+
+            curField = 1;
+        }
+        
+        // Destroy a write statement
+        StatementWriter::~StatementWriter() {
+            finalize();
+        }
+        
+        // Run the statement
+        void StatementWriter::go() {
+            if (isFinalized)
+                throw 1;
+            
+            if (sqlite3_step(stmt) != SQLITE_DONE)
+                throw 1;
+        }
+        
+        // Finalize the statement
+        void StatementWriter::finalize() {
+            if (!isFinalized) {
+                sqlite3_finalize(stmt);
+                isFinalized = true;
+                stmt = NULL;
+            }
+        }
+        
+        // Add an integer to the row data
+        void StatementWriter::add(int iVal) {
+            if (isFinalized) throw 1;
+            
+            sqlite3_bind_int(stmt,curField++,iVal);
+        }
+        
+        // Add a double to the row data
+        void StatementWriter::add(double dVal) {
+            if (isFinalized)  throw 1;
+            
+            sqlite3_bind_double(stmt,curField++,dVal);
+        }
+        
+        // Add a string to the row data
+        void StatementWriter::add(const std::string& str) {
+            const char *strData = str.c_str();
+            sqlite3_bind_text(stmt, curField++, strData, -1, SQLITE_STATIC);
+        }
+        
+        // Add a bool to the row data
+        void StatementWriter::add(bool bVal)  {
+            if (isFinalized) throw 1;
+            
+            sqlite3_bind_text(stmt, curField++, (bVal ? "yes" : "no"), -1, SQLITE_STATIC);
+        }
+
 
 现在再回忆第一篇说的几何结构，现在让我们重新写好这个几何结构：
-````C++
-typedef std::vector<Point2f> Ring;
-typedef std::set<std::string> StringSet;
 
-class Geometry : public Identifiable {
-public:
-    virtual Mbr getMbr() = 0;
-protected:
-    Geometry();
-    virtual ~Geometry();
-};
+    ::C++
+    typedef std::vector<Point2f> Ring;
+    typedef std::set<std::string> StringSet;
 
-class MultiPoints: public Geometry {
-public:
-    static std::shared_ptr<MultiPoints> createPoints();
-    ~MultiPoints();
-    virtual Mbr getMbr();
-    Ring points;
-protected:
-    MultiPoints();
-};
+    class Geometry : public Identifiable {
+    public:
+        virtual Mbr getMbr() = 0;
+    protected:
+        Geometry();
+        virtual ~Geometry();
+    };
 
-class Polyline : public Geometry {
-public:
-    static std::shared_ptr<Polyline> createPolyline();
-    ~Polyline();
-    virtual Mbr getMbr();
-    void subdivide(float tolerance);
-    float getLength();
-    Ring points;
-protected:
-    Polyline();
-};
+    class MultiPoints: public Geometry {
+    public:
+        static std::shared_ptr<MultiPoints> createPoints();
+        ~MultiPoints();
+        virtual Mbr getMbr();
+        Ring points;
+    protected:
+        MultiPoints();
+    };
 
-class Polygon : public Geometry {
-public:
-    static std::shared_ptr<Polygon> createPolygon();
-    ~Polygon();
-    virtual Mbr getMbr();
-    void subdivide(float tolerance);
-    float getArea();
-    std::vector<Ring> loops;
-protected:
-    Polygon();
-};
+    class Polyline : public Geometry {
+    public:
+        static std::shared_ptr<Polyline> createPolyline();
+        ~Polyline();
+        virtual Mbr getMbr();
+        void subdivide(float tolerance);
+        float getLength();
+        Ring points;
+    protected:
+        Polyline();
+    };
 
-class GeometryReader {
-{
-public:
-    GeometryReader() { }
-    virtual ~GeometryReader() { }
-	
-    /// Return false if we failed to load
-    virtual bool isValid() = 0;
-	
-    /// Returns one of the vector types.
-    /// Keep enough state to figure out what the next one is.
-    /// You can skip any attributes not named in the filter.  Or just ignore it.
-    virtual std::shared_ptr<Geometry> getNextObject(const StringSet *filter) = 0;
-    
-    /// Return true if this vector reader can seek and read
-    virtual bool canReadByIndex() { return false; }
-    
-    /// Return the total number of vectors objects
-    virtual unsigned int getNumObjects() { return 0; }
-    
-    /// Return an object that corresponds to the given index.
-    /// You need to be able to seek in your file format for this.
-    /// The filter works the same as for getNextObect()
-    virtual std::shared_ptr<Geometry> getObjectByIndex(unsigned int vecIndex,const StringSet *filter)  { return std::shared_ptr<Geometry>(); }
-};
+    class Polygon : public Geometry {
+    public:
+        static std::shared_ptr<Polygon> createPolygon();
+        ~Polygon();
+        virtual Mbr getMbr();
+        void subdivide(float tolerance);
+        float getArea();
+        std::vector<Ring> loops;
+    protected:
+        Polygon();
+    };
 
-````
+    class GeometryReader {
+    {
+    public:
+        GeometryReader() { }
+        virtual ~GeometryReader() { }
+        
+        /// Return false if we failed to load
+        virtual bool isValid() = 0;
+        
+        /// Returns one of the vector types.
+        /// Keep enough state to figure out what the next one is.
+        /// You can skip any attributes not named in the filter.  Or just ignore it.
+        virtual std::shared_ptr<Geometry> getNextObject(const StringSet *filter) = 0;
+        
+        /// Return true if this vector reader can seek and read
+        virtual bool canReadByIndex() { return false; }
+        
+        /// Return the total number of vectors objects
+        virtual unsigned int getNumObjects() { return 0; }
+        
+        /// Return an object that corresponds to the given index.
+        /// You need to be able to seek in your file format for this.
+        /// The filter works the same as for getNextObect()
+        virtual std::shared_ptr<Geometry> getObjectByIndex(unsigned int vecIndex,const StringSet *filter)  { return std::shared_ptr<Geometry>(); }
+    };
+
 
 接下来就是存储的地方：数据库了——GeometryDatabase。
 数据库需要存储位置、存储文件的名称、数据读取器等
 
-````C++
-typedef std::set<unsigned int> UIntSet;
-typedef std::shared_ptr<Geometry> GeometryRef;
+    ::C++
+    typedef std::set<unsigned int> UIntSet;
+    typedef std::shared_ptr<Geometry> GeometryRef;
 
-class GeometryDatabase
-{
-public:
-    GeometryDatabase(const char *bundleDir,const char *cacheDir,const char *baseName,GeometryReader *reader,const std::set<std::string> *indices,bool cache=false,bool autoload=false);
-    ~GeometryDatabase();
+    class GeometryDatabase
+    {
+    public:
+        GeometryDatabase(const char *bundleDir,const char *cacheDir,const char *baseName,GeometryReader *reader,const std::set<std::string> *indices,bool cache=false,bool autoload=false);
+        ~GeometryDatabase();
 
-    void setAutoload(bool autoload);
-    void setMemCache(bool memCache);
-    void process();
-    unsigned int numGeometries();
-    Mbr getMbr(unsigned int);
+        void setAutoload(bool autoload);
+        void setMemCache(bool memCache);
+        void process();
+        unsigned int numGeometries();
+        Mbr getMbr(unsigned int);
 
-    std::shared_ptr<Geometry> getVector(unsigned int,bool withAttributes=true);
-    void queryGeometries(const Mbr &mbr,UIntSet &vecIds);
-    void queryGeometries(const char *query,UIntSet &vecIds);
-    void queryGeometries(const char *query,ShapeSet &shapes);
+        std::shared_ptr<Geometry> getVector(unsigned int,bool withAttributes=true);
+        void queryGeometries(const Mbr &mbr,UIntSet &vecIds);
+        void queryGeometries(const char *query,UIntSet &vecIds);
+        void queryGeometries(const char *query,ShapeSet &shapes);
 
-    void findArealsForPoint(const GeoCoord &coord,ShapeSet &shapes);
+        void findArealsForPoint(const GeoCoord &coord,ShapeSet &shapes);
 
-    sqlite3 *getSqliteDb();
-    
-protected:
-    bool buildCaches(const char *mbrCache, const char *sqlDb);
-    bool readCaches(const char *mbrCache, const char *sqlDb);
-    
-    GeometryReader *reader;
-    
-    std::vector<Mbr> mbrs;
-    
-    /// If we're caching in memory, this is the cache
-    bool vecCacheOn;
-    std::map<unsigned int, GeometryRef> vecCache;
-    
-    /// If we're slowly loading data in, this is how we keep track
-    bool autoloadOn;
-    int autoloadWhere;
-    
-    /// Open SQLite database
-    sqlite3 *db;
-};
-````
+        sqlite3 *getSqliteDb();
+        
+    protected:
+        bool buildCaches(const char *mbrCache, const char *sqlDb);
+        bool readCaches(const char *mbrCache, const char *sqlDb);
+        
+        GeometryReader *reader;
+        
+        std::vector<Mbr> mbrs;
+        
+        /// If we're caching in memory, this is the cache
+        bool vecCacheOn;
+        std::map<unsigned int, GeometryRef> vecCache;
+        
+        /// If we're slowly loading data in, this is how we keep track
+        bool autoloadOn;
+        int autoloadWhere;
+        
+        /// Open SQLite database
+        sqlite3 *db;
+    };
 
 
 {# Local Variables: #}
