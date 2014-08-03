@@ -30,7 +30,7 @@ meta:
   modified: git
   language: cn
 #  analytics: UA-21482482-4
-  disqus: gov2
+  disqus: cc98
   keywords: "gis, python, performance, netease"
 less:
   app: D:\goby\bin\less\lessc.cmd
