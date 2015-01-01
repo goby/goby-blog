@@ -16,3 +16,7 @@ l10n:
   attachments: "附件"
   tags: "分类"
   share: "分享TA"
+  
+listable: true
+comments: true
+class: article

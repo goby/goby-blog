@@ -1,6 +1,6 @@
 *~
 *.pyc
-
+src
 .hyde_deps
 deploy
 screenshots
