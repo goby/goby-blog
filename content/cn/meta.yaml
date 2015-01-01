@@ -7,11 +7,11 @@ menu:
      name: "The One"
      page: "http://gobyoung.com"
   -
-     name: "Projects"
-     page: "projects.html"
-  -
      name: "Blog"
      page: "index.html"
+  -
+     name: "Projects"
+     page: "#"
   -
      name: "About"
      page: "about.html"
