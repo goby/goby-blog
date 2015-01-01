@@ -18,7 +18,7 @@ plugins:
   - extensions.typo.WidontPlugin
 context:
   data:
-    base: http://goby.github.io
+    base: http://blog.gobyoung.com
     languages:
       cn: 简体中文
 #      en: English

@@ -8,7 +8,7 @@ menu:
      page: "projects.html"
   -
      name: "Blog"
-     page: "blog/"
+     page: "#"
 l10n:
   otherlinks: "其他"
   translations: "其他可用语言"
