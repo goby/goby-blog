@@ -62,6 +62,18 @@
 {% endif %}
 {% endmacro %}
 
+{# Display modified date of the resource #}
+{% macro resource_modified_date(resource) %}
+{% if resource.meta.modified != None %}
+<time class="timeago"
+      datetime="{{ resource.meta.modified|xmldatetime }}"
+      style="font-style: italic;color:#C5C5C5"
+      pubdate>
+  Last Modified:<abbr class="published updated" title="{{ resource.meta.modified|xmldatetime }}">{{ resource.meta.modified.strftime('%B %d, %Y') }}</abbr>
+</time>
+{% endif %}
+{% endmacro %}
+
 {# Display a photo gallery; directory may be a directory or a prefix #}
 {% macro gallery(directory,description) %}
 <div class="lf-gallery">

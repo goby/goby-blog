@@ -20,7 +20,7 @@
       <ul>
 	{% for tag in resource.tags|sort %}
 	<li>
-	  <a href="{{ content_url(resource.meta.language + '/blog/') }}#tag-{{ tag }}">
+	  <a href="{{ content_url(resource.meta.language) }}#tag-{{ tag }}">
 	    {{ tag|attr("descr_" + resource.meta.language)|e }}{{ tag.descr|e  }}
 	</a></li>
 	{% endfor %}
