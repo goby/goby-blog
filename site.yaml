@@ -21,7 +21,6 @@ context:
     base: http://blog.gobyoung.com
     languages:
       cn: 简体中文
-#      en: English
 meta:
   nodemeta: meta.yaml
   author: Tanglim LUA
@@ -29,9 +28,9 @@ meta:
   created: git
   modified: git
   language: cn
-#  analytics: UA-21482482-4
   disqus: cc98
   keywords: "gis, python, performance, netease"
+  charset: utf-8
 less:
   app: D:\goby\bin\less\lessc.cmd
 markdown:
@@ -61,15 +60,6 @@ sorter:
       source.kind: html
       meta.listable: true
       meta.language: cn
-  time_en:
-    attr:
-      - meta.created
-      - relative_path
-    reverse: true
-    filters:
-      source.kind: html
-      meta.listable: true
-      meta.language: en
 tagger:
   sorter: time
   tags:

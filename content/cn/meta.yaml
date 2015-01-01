@@ -4,11 +4,18 @@ default_block: article
 language: cn
 menu:
   -
+     name: "The One"
+     page: "http://gobyoung.com"
+  -
      name: "Projects"
      page: "projects.html"
   -
      name: "Blog"
-     page: "#"
+     page: "index.html"
+  -
+     name: "About"
+     page: "about.html"
+     
 l10n:
   otherlinks: "其他"
   translations: "其他可用语言"
