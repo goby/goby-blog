@@ -13,7 +13,7 @@ tags:
 根据Mads Kristensen（VS web code editor成员）的说法是当时考虑了三种方式[^Mads]：
 
 1. 为所有的js的文件做索引，显然这种缺点非常明显，就是性能会成为瓶颈的，而且会有很多干扰选项
-2. 只索引 HTML 中 <script> 中的内容，这种能够减少非常多的负担而且能够符合一部分Web开发需求，但是假如说只写js怎么办？难道弄到一个HTML 中去？
+2. 只索引 HTML 中 `<script>` 中的内容，这种能够减少非常多的负担而且能够符合一部分Web开发需求，但是假如说只写js怎么办？难道弄到一个HTML 中去？
 3. 显然，准确的方式应该是寻求一种和 using 或者 #include 的方式
 
 最后，他们决定使用如下注释的方式（天啊撸不知道vc会不会像喷golang那样喷VS）：
@@ -29,7 +29,8 @@ tags:
 终于我们绕了一个大弯，如何让 VS 的 javascript editor 支持 cocos2d-js 的智能提示呢？
 简单啊，我们新建个Web 工程，把文件以 link 方式添加进来，然后用 everything 把所有的js都扔进来就行了。于是就可以像下面这样：
     
-![JavaScript Intellisense](images/js/js-intellisense.png)
+![JavaScript Intellisense][ji]
+[ji]: [[!!images/js/js-intellisense.png]] "Look"
     
 太棒了！！
 
@@ -38,9 +39,10 @@ tags:
 其实和上面的方式就是一样的:-) 只要把 _references.js 放在 当前folder 的ROOT 下就行了。
 *不过在我的8M js 面前 Code崩溃了哇哈哈哈哈哈哈哈*
 
-![lol](images/js/lol.png)
+![lol][]
+[lol]: [[!!images/js/lol.png]] "哈哈哈哈哈哈哈"
 
-[^Mads]: The Story Behind _References.js http://madskristensen.net/post/the-story-behind-_referencesjs
+[^Mads]: [The Story Behind _References.js](http://madskristensen.net/post/the-story-behind-_referencesjs)
 
 {# Local Variables: #}
 {# mode: markdown   #}
