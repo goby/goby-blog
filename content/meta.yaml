@@ -7,11 +7,11 @@ menu:
      page: "http://gobyoung.com"
   -
      name: "Blog"
-     page: "cn/index.html"
+     page: "index.html"
   -
      name: "Projects"
      page: "#"
   -
      name: "About"
-     page: "cn/about.html"
+     page: "about.html"
      
