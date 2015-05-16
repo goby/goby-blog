@@ -1,0 +1,17 @@
+extends: base.j2
+default_block: article
+
+menu:
+  -
+     name: "The One"
+     page: "http://gobyoung.com"
+  -
+     name: "Blog"
+     page: "cn/index.html"
+  -
+     name: "Projects"
+     page: "#"
+  -
+     name: "About"
+     page: "cn/about.html"
+     

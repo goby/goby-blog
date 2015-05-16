@@ -77,4 +77,4 @@ publisher:
     github:
         type: hyde.ext.publishers.dvcs.Git
         path: ../goby.github.io
-        url: git@github.com:goby/goby.github.io.git
+        url: github.com/goby/goby.github.io
