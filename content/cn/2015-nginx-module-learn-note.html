@@ -46,7 +46,7 @@ Filter不会等到上一个处理均结束才开始，而是类似于Unix的管�
 # Nginx 模块的组成部分
 
 ## 1. 配置部分
-命名： ngx_http_<module_name>_(main|srv|loc)_conf_t，例如 dav 模块：
+命名： ngx_http_<module_name\>_(main|srv|loc)_conf_t，例如 dav 模块：
 
     ::c
     typedef struct {
@@ -375,6 +375,22 @@ echo模块有status设置，以下是我自己的脑补）：
 是个 `nginx_table_elt_t*`，所以需要先分配内存。`ngx_list_push`这个方法
 可以帮我们做这个事情，它传入一个`ngx_list_t`并返回最新的
 
+
+### TEST MathJax
+
+$$
+ \begin{align}
+    p(v_i=1|\mathbf{h}) &= \sigma\left(\sum_j w_{ij}h_j + b_i\right) \\\
+    p(h_j=1|\mathbf{v}) &= \sigma\left(\sum_i w_{ij}v_i + c_j\right)
+    \end{align}
+$$
+
+$$
+E(\mathbf{v}, \mathbf{h}) = -\sum_{i,j}w_{ij}v_i h_j - \sum_i b_i v_i - \sum_j c_j h_j
+$$
+
+
+- Inline equations: $p(x|y) = \frac{p(y|x)p(x)}{p(y)}$.
 
 {# Local Variables:      #}
 {# mode: markdown        #}

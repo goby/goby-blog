@@ -15,7 +15,7 @@ plugins:
   - extensions.text.TextlinksPlugin
   - hyde.ext.plugins.textlinks.TextlinksPlugin
   - extensions.images.ImageThumbnailsPlugin
-  - extensions.typo.WidontPlugin
+  
 context:
   data:
     base: http://blog.gobyoung.com
