@@ -44,12 +44,12 @@ def new_blog(config):
     content = content.replace('{TAGS}', config.tag)
     content = content.replace('{CREATED}', config.date)
     year = time.strptime(config.date, '%Y-%m-%dT%H:%M:%S+0800').tm_year
-    filename =  'content/cn/%d-%s.md' % (year, config.head.replace(' ', '-'))
+    filename =  'content/cn/%d-%s.html' % (year, config.head.replace(' ', '-'))
     with codecs.open(filename, 'wc', 'utf-8') as f:
-        print >> f, content
+        f.write(content)
     
     print filename
-    os.system('start "cmd" "%s"' % filename)
+    #os.system('start "cmd" "%s"' % filename)
     
 def main():
     parser = argparse.ArgumentParser(prog = 'blog.py')
