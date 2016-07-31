@@ -10,7 +10,7 @@ menu:
      page: "index.html"
   -
      name: "Projects"
-     page: "#"
+     page: "https://github.com/goby"
   -
      name: "About"
      page: "about.html"
