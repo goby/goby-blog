@@ -7,6 +7,7 @@ menu:
      page: "http://gobyoung.com"
   -
      name: "Blog"
+     type: "tags"
      page: "index.html"
   -
      name: "Projects"

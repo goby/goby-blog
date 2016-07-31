@@ -11,6 +11,15 @@
   <link rel="canonical" href="{{base}}{{ content_url(resource.url) }}">
   <link rel="alternate" href="{{ content_url( resource.meta.language + '/blog/atom.xml') }}" type="application/atom+xml" title="ATOM feed">
   <link rel="stylesheet" href="//fonts.googleapis.com/css?family=Inconsolata|Source+Sans+Pro:700|Merriweather:400,400italic" type="text/css">
+{% if site.config.mode == "development" %}
+  <link rel="stylesheet" href="{{ media_url('css/bootstrap.css') }}" type="text/css">
+  <link rel="stylesheet" href="{{ media_url('css/bootstrap-material-design.css') }}" type="text/css">
+  <link rel="stylesheet" href="{{ media_url('css/ripples.css') }}" type="text/css">
+{% else %}
+  <link rel="stylesheet" href="{{ media_url('css/bootstrap.min.css') }}" type="text/css">
+  <link rel="stylesheet" href="{{ media_url('css/bootstrap-material-design.min.css') }}" type="text/css">
+  <link rel="stylesheet" href="{{ media_url('css/ripples.min.css') }}" type="text/css">
+{% endif %}
   <link rel="stylesheet" href="{{ media_url('css/luffy.css') }}" type="text/css">
 {% if site.config.mode == "development" %}
   <link rel="stylesheet" href="{{ media_url('css/grid.css') }}" type="text/css">
@@ -29,33 +38,31 @@
 {% else %}
 <body>
 {% endif %}
-
   {# Navigation bar #}
-  <nav id="lf-navbar">
-    <div id="lf-homeicon">
-      <a class="lf-sprite-strawhat2" rel="author"
-	 href="{{ content_url( resource.meta.language ) }}/"></a>
+  <div class="navbar navbar-default">
+    <div class="container-fluid">
+      <div class="navbar-header">
+        <a class="navbar-brand" href="/">Work Deep in the Sea</a>
+      </div>
+      <div class="navbar-collapse collapse navbar-responsive-collapse">
+        {% include "menu.j2" %}
+        <form class="navbar-form navbar-right" id="lf-search" action="//www.google.com/search">
+          <div class="form-group">
+            <input id="goby-search-query" type="text" class="form-control col-sm-8" name="q" placeholder="Search">
+            <input type="hidden" name="hl" value="{{ resource.meta.language }}">
+            <input type="hidden" name="q"  value="site:blog.gobyoung.com/{{ resource.meta.language }}/*">
+          </div>
+        </form>
+      </div>
     </div>
-    <div id="lf-menubar">
-      <form id="lf-search" action="//www.google.com/search">
-	<i id="lf-search-glass"><input type="submit" class="lf-sprite-search" value=""></i>
-	<input type="hidden" name="hl" value="{{ resource.meta.language }}">
-	<input type="hidden" name="q"  value="site:blog.gobyoung.com/{{ resource.meta.language }}/*">
-	<input id="lf-search-query" type="text" name="q" value="">
-      </form>
-      {% include "menu.j2" %}
-    </div>
-  </nav>
+  </div>
   <div id="lf-search-results">
     <div id="lf-search-results-results"></div>
-    <span id="lf-search-results-close"
-	  class="lf-sprite-slimbox-close"></span>
+    <span id="lf-search-results-close" class="lf-sprite-slimbox-close"></span>
   </div>
 
   {# Pages #}
   <div id="lf-pages">
-    <div id="lf-page-1"></div>
-    <div id="lf-page-2"></div>
     <div id="lf-page">
       <article>
 	{% block header %}
@@ -89,33 +96,46 @@
     <div>
       <h3>{{ resource.meta.l10n.otherlinks|e }}</h3>
       <ul>
-	<li><a href="https://github.com/goby">GitHub</a></li>
-	<li><a href="http://www.linkedin.com/in/gobylua">LinkedIn</a></li>
-	<li><a href="http://twitter.com/lpdl">@lpdl</a></li>
+        <li><a href="https://github.com/goby">GitHub</a></li>
+        <li><a href="http://www.linkedin.com/in/gobylua">LinkedIn</a></li>
+        <li><a href="http://twitter.com/lpdl">@lpdl</a></li>
       </ul>
     </div>
  
     <div>
-      <h3>Sources</h3>
+      <h3>Thanks</h3>
       <ul>
-	<li>Powered by <a href="http://ringce.com/hyde">Hyde</a> & <a href="https://github.com/vincentbernat/www.luffy.cx">Vincent Bernat</a></li>
-	<li> Fork by 
-	  <a href="https://github.com/goby/goby-blog">goby</a>
-	</li>
+        <li><a href="http://ringce.com/hyde">Hyde</a> 
+          & <a href="https://github.com/vincentbernat/www.luffy.cx">Vincent Bernat</a> 
+          & <a href="https://github.com/FezVrasta/bootstrap-material-design">Material Design</a> 
+        </li>
       </ul>
     </div>
     <address class="vcard author">
-      © 2014 - 2016<a class="fn email" href="mailto:goby@foxmail.com">Tanglim LUA</a>
-      <a class="lf-sprite-rss"
-	 href="{{ content_url(resource.meta.language + '/blog/atom.xml') }}">
+      © 2014-2016 <a class="fn email" href="https://about.me/goby">Tanglim LUA</a>
 	&nbsp;
       </a>
     </address>
   </footer>
 
   {# Load remaining scripts #}
+{% if site.config.mode == "development" %}
+  <script src="{{ media_url('js/jquery.js') }}"></script>
+  <script src="{{ media_url('js/bootstrap.js') }}"></script>
+  <script src="{{ media_url('js/material.js') }}"></script>
+  <script src="{{ media_url('js/ripples.js') }}"></script>
+{% else %}
   <script src="{{ media_url('js/jquery.min.js') }}"></script>
+  <script src="{{ media_url('js/bootstrap.min.js') }}"></script>
+  <script src="{{ media_url('js/material.min.js') }}"></script>
+  <script src="{{ media_url('js/ripples.min.js') }}"></script>
+{% endif %}
   <script src="{{ media_url('js/luffy.js') }}" async></script>
+  <script>
+    $(function(){
+        console.log($.material.init());
+    });
+  </script>
 {% if site.config.mode == "development" %}
   <script src="{{ media_url('js/hashgrid.js') }}" async></script>
 {% endif %}

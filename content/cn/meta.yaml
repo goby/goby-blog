@@ -8,10 +8,11 @@ menu:
      page: "http://gobyoung.com"
   -
      name: "Blog"
+     type: "tags"
      page: "index.html"
   -
      name: "Projects"
-     page: "#"
+     page: "https://github.com/goby"
   -
      name: "About"
      page: "about.html"

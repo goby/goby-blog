@@ -63,10 +63,7 @@ luffy.effects = function() {
           Add captions to images
        -- */
     e = function() {
-	/* IE 7 is not able to render properly, just don't modify
-	 * anything for it */
-	if ($.browser.msie && parseInt($.browser.version, 10) < 8)
-	    return;
+	/* we did not support IE < 9 any more. */
 	$("article img[title]").each(function() {
 	    var img = $(this), title = img.attr("title");
 	    if (img.parent().is("a")) img = img.parent();

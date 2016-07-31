@@ -1,10 +1,25 @@
 {# -*- web -*- #}
-<ul>
+<ul class="nav navbar-nav">
   {% for menu in resource.meta.menu %}
-  <li{% if content_url(resource.url).startswith(content_url(resource.meta.language + '/' + menu['page'])) %} class="active"{% endif %}>
+  {% if menu['type'] == 'tags' %}
+  <li class="dropdown {% if content_url(resource.url).startswith(content_url(resource.meta.language + '/' + menu['page'])) %} active{% endif %}" >
+    {% set page_url = content_url(resource.meta.language + '/' + menu['page']) %}
+    <a href="{{ page_url }}" class="dropdown-toggle" data-toggle="dropdown">{{ menu['name']|e }} <b class="caret"></b></a>
+    <ul class="dropdown-menu">
+      {% set sort = site.content|attr("walk_resources_sorted_by_time_" + resource.meta.language)() %}
+      {% for tag, resources in site.tagger.tags|sort %}
+      <li><a href="{{ page_url }}#tag-{{ tag }}">{{ site.tagger.tags[tag].descr|e  }}</a></li>
+      {% endfor %}
+      <li class="divider"></li>
+      <li><a href="{{ page_url }}">所有文章</a></li>
+    </ul>
+  </li>
+  {% else %}
+  <li{% if content_url(resource.url).startswith(content_url(resource.meta.language + '/' + menu['page'])) %} class="active"{% endif %} >
    {% if menu['page'].startswith("http") %}  <a href="{{ menu['page'] }}"> {{ menu['name']|e }} </a>
    {% else %} <a href="{{ content_url(resource.meta.language + '/' + menu['page']) }}"> {{ menu['name']|e }} </a>
    {% endif %}
   </li>
+  {% endif %}
   {% endfor %}
 </ul>
