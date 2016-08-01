@@ -42,7 +42,7 @@
   <div class="navbar navbar-default">
     <div class="container-fluid">
       <div class="navbar-header">
-        <a class="navbar-brand" href="/">{{ resource.meta.title|e }}</a>
+        <a class="navbar-brand" href="/">{{ site.meta.title|e }}</a>
       </div>
       <div class="navbar-collapse collapse navbar-responsive-collapse">
         {% include "menu.j2" %}
@@ -62,33 +62,34 @@
   </div>
 
   {# Pages #}
-  <div id="lf-pages">
-    <div id="lf-page">
+  <div id="lf-pages" class="container row">
+    <div id="lf-page" class="col-md-9">
       <article>
-	{% block header %}
-	<header>
-	  <h1>{{resource.meta.title|typogrify|e}}</h1>
+        {% block header %}
+        <header>
+          <h1>{{resource.meta.title|typogrify|e}}</h1>
           <div id="lf-sideblock">
-	  {% if resource.meta.author == 1 %} {# Hidden author #}
-	  <h2>{{resource.meta.author|e}}</h2>
-	  {% endif %}
-	  {% from "macros.j2" import resource_date with context %}
-	  {{ resource_date(resource) }}
+          {% if resource.meta.author == 1 %} {# Hidden author #}
+            <h2>{{resource.meta.author|e}}</h2>
+          {% endif %}
+          {% from "macros.j2" import resource_date with context %}
+            {{ resource_date(resource) }}
           {% include "sidebar.j2" %}
           </div>
-	</header>
-	{% endblock %}
-	{% block main %}
-	<div id="lf-main" role="main">
-	  {% filter markdown|typogrify -%}
-	  {% mark article -%}{% block article -%}{%- endblock %}{%- endmark %}
-	  {%- endfilter %}
-	</div>
-	{% endblock %}
+        </header>
+        {% endblock %}
+        {% block main %}
+        <div id="lf-main" role="main">
+          {% filter markdown|typogrify -%}
+          {% mark article -%}{% block article -%}{%- endblock %}{%- endmark %}
+          {%- endfilter %}
+        </div>
+        {% endblock %}
       </article>
       {% from "macros.j2" import resource_modified_date with context %}
       {% include "comments.j2" %}
     </div>
+    <div class="col-md-3"><nav class="article-sidebar hidden-print hidden-xs hidden-sm affix"><ul id="toc" class="nav"></ul></nav></div>
   </div>
 
   {# Footer #}
@@ -134,6 +135,28 @@
   <script>
     $(function(){
         console.log($.material.init());
+        var toc = $("#toc");
+        
+        var createNav = function(e) {
+          return '<li><a href="#' + e.attr('id') + '">' + e.text() + '</a></li>'
+        }
+        
+        $("#lf-main h1").each(function(i) {
+            var self = $(this);
+            var nav = $(createNav(self))
+            var children = self.nextUntil('h1', 'h2');
+            if (children.length != 0) {
+              var subnav = $('<ul class="nav"></ul>')
+              children.each(function() {
+                 subnav.append(createNav($(this)));
+              });
+              nav.append(subnav);
+            }
+            toc.append(nav);
+        }).promise().done(function(){
+          toc.append('<a class="back-to-top" href="#top">返回顶部</a>');
+          $('body').scrollspy({target: '.article-sidebar', offset: 40});
+        });
     });
   </script>
 {% if site.config.mode == "development" %}

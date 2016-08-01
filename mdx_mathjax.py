@@ -3,7 +3,7 @@
 # This will be processed later by MathJax
 
 import markdown
-etree = markdown.etree_loader.importETree()
+from markdown.util import etree
 
 class MathJaxPattern(markdown.inlinepatterns.Pattern):
 
