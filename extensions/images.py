@@ -9,7 +9,10 @@ from hyde.plugin import Plugin
 from hyde.plugin import CLTransformer
 from fswrap import File, Folder
 
-import Image
+try:
+    from PIL import Image
+except ImportError:
+    import Image
 import new
 import os
 from functools import partial
