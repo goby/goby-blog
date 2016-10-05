@@ -30,7 +30,7 @@
    catch some missing unicode characters, like check mark or something
    like that. */
 @font-unicode: 'Lucida Grande','Lucida Sans Unicode', 'Microsoft YaHei', 'Wenquanyi Micro Hei', 'WenQuanYi Zen Hei', 'ST Heiti', SimHei, 'WenQuanYi Zen Hei Sharp', sans-serif;
-@font-regular:  'Merriweather','Droid Serif',Georgia,@font-unicode;
+@font-regular:  -apple-system, BlinkMacSystemFont, "Helvetica Neue", "Segoe UI", 'Merriweather','Droid Serif',Georgia,@font-unicode;
 @font-headings: 'Source Sans Pro','Droid Sans', @font-unicode;
 @font-console:  'Inconsolata','Droid Sans Mono',monospace,@font-unicode;
 @footer-color: #2C3339;
@@ -54,4 +54,12 @@
 .font-size (@factor: 1) {
     font-size: @factor * 1em;
     line-height: ~`Math.ceil(@{factor}/@{line-height})*@{line-height}/@{factor}`;
+}
+
+body {
+    font-family: @font-regular
+}
+
+h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4 {
+    font-family: @font-headings
 }
