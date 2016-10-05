@@ -16,6 +16,9 @@ menu:
   -
      name: "About"
      page: "about.html"
+  -
+     name: "Resources"
+     page: "resources.html"
      
 l10n:
   otherlinks: "其他"
