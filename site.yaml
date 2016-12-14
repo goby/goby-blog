@@ -32,7 +32,7 @@ meta:
   keywords: "gis, python, performance, netease"
   charset: utf-8
 less:
-  app: D:\goby\bin\less\lessc.cmd
+  app: ./lessc
 markdown:
   extensions:
     - codehilite

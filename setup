@@ -1,0 +1,55 @@
+#!/bin/bash
+
+VIRTUAL_PATH=.venv
+NODE_VERSION=v6.9.2
+PIP_OPTS="-i http://pypi.douban.com/simple --trusted-host pypi.douban.com"
+
+fatal_error()
+{
+    echo Fatal: $@
+    return 1
+}
+
+check_venv()
+{
+    [ -z "$(which virtualenv)" ] && fatal_error "virtualenv is required, please install it"
+
+    if [ -z "$VIRTUAL_ENV" ]; then
+        echo "Setup virtual env..."
+        virtualenv .venv || fatal_error setup failed
+        . .venv/bin/activate
+    fi
+    echo "Install requirements..."
+
+    pip install -r requirements.txt $PIP_OPTS
+}
+
+check_encoding()
+{
+    SITE_PATH=$(python -c 'from distutils.sysconfig import get_python_lib;print(get_python_lib())')
+    echo "import sys; sys.setdefaultencoding('utf-8')" > $SITE_PATH/../sitecustomize.py
+}
+
+check_node()
+{
+    if [ -z "$(which npm)" ];then
+        echo "Could not found npm, downloading..."
+        curl -L https://npm.taobao.org/mirrors/node/$NODE_VERSION/node-$NODE_VERSION-linux-x64.tar.xz | tar Jx || fatal_error download failed.
+        mv node-$NODE_VERSION-linux-x64/bin/* $VIRTUAL_ENV/bin/
+        mv node-$NODE_VERSION-linux-x64/lib/* $VIRTUAL_ENV/lib/
+        mv node-$NODE_VERSION-linux-x64/include/* $VIRTUAL_ENV/include/
+        mv node-$NODE_VERSION-linux-x64/share/* $VIRTUAL_ENV/share/
+        rm -r node-$NODE_VERSION-linux-x64
+    fi
+
+    echo "Installing less2css..."
+    npm install less --registry=https://registry.npm.taobao.org
+    ln -fs `pwd`/node_modules/less/bin/lessc lessc
+}
+
+echo "Seting up env..."
+
+check_venv
+check_node
+check_encoding
+

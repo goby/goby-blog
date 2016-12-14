@@ -13,9 +13,12 @@ menu:
      name: "Projects"
      page: "https://github.com/goby"
   -
-     name: "About"
-     page: "about.html"
-  -
      name: "Resources"
      page: "resources.html"
+  -
+     name: "Books"
+     page: "/books/"
+  -
+     name: "About"
+     page: "about.html"
      
