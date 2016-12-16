@@ -7,3 +7,6 @@ screenshots
 .final
 
 s3cmd.cfg
+
+.venv
+node_modules/

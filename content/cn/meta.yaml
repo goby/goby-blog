@@ -18,7 +18,7 @@ menu:
      page: "resources.html"
   -
      name: "Books"
-     page: "/books/"
+     page: "https://blog.gobyoung.com/books/"
   -
      name: "About"
      page: "about.html"

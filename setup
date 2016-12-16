@@ -15,8 +15,12 @@ check_venv()
     [ -z "$(which virtualenv)" ] && fatal_error "virtualenv is required, please install it"
 
     if [ -z "$VIRTUAL_ENV" ]; then
-        echo "Setup virtual env..."
-        virtualenv .venv || fatal_error setup failed
+
+        if [ ! -d "$VIRTUAL_PATH" ]; then
+            echo "Setup virtual env..."
+            virtualenv .venv || fatal_error setup failed
+        fi
+
         . .venv/bin/activate
     fi
     echo "Install requirements..."
@@ -32,19 +36,22 @@ check_encoding()
 
 check_node()
 {
-    if [ -z "$(which npm)" ];then
-        echo "Could not found npm, downloading..."
-        curl -L https://npm.taobao.org/mirrors/node/$NODE_VERSION/node-$NODE_VERSION-linux-x64.tar.xz | tar Jx || fatal_error download failed.
-        mv node-$NODE_VERSION-linux-x64/bin/* $VIRTUAL_ENV/bin/
-        mv node-$NODE_VERSION-linux-x64/lib/* $VIRTUAL_ENV/lib/
-        mv node-$NODE_VERSION-linux-x64/include/* $VIRTUAL_ENV/include/
-        mv node-$NODE_VERSION-linux-x64/share/* $VIRTUAL_ENV/share/
-        rm -r node-$NODE_VERSION-linux-x64
-    fi
+    if [ -z "$(which lessc)" ]; then
 
-    echo "Installing less2css..."
-    npm install less --registry=https://registry.npm.taobao.org
-    ln -fs `pwd`/node_modules/less/bin/lessc lessc
+        if [ -z "$(which npm)" ];then
+            echo "Could not found npm, downloading..."
+            curl -L https://npm.taobao.org/mirrors/node/$NODE_VERSION/node-$NODE_VERSION-linux-x64.tar.xz | tar Jx || fatal_error download failed.
+            mv node-$NODE_VERSION-linux-x64/bin/* $VIRTUAL_ENV/bin/
+            mv node-$NODE_VERSION-linux-x64/lib/* $VIRTUAL_ENV/lib/
+            mv node-$NODE_VERSION-linux-x64/include/* $VIRTUAL_ENV/include/
+            mv node-$NODE_VERSION-linux-x64/share/* $VIRTUAL_ENV/share/
+            rm -rf node-$NODE_VERSION-linux-x64/
+        fi
+
+        echo "Installing less2css..."
+        npm install less --registry=https://registry.npm.taobao.org
+        ln -fs `pwd`/node_modules/less/bin/lessc $VIRTUAL_ENV/bin/lessc
+    fi
 }
 
 echo "Seting up env..."
