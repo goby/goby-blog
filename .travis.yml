@@ -1,0 +1,14 @@
+language: python
+node_js:
+- stable
+
+python:
+- "2.7"
+
+script: bash ./deploy.sh
+
+env:
+  global:
+  - ENCRYPTION_LABEL: "0538ff262ea0"
+  - COMMIT_AUTHOR_EMAIL: "goby@foxmail.com"
+  - TARGET_REPO: "https://github.com/goby/goby.github.io.git"

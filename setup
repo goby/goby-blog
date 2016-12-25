@@ -2,7 +2,13 @@
 
 VIRTUAL_PATH=.venv
 NODE_VERSION=v6.9.2
-PIP_OPTS="-i http://pypi.douban.com/simple --trusted-host pypi.douban.com"
+NODE_URL="https://nodejs.org/dist/${NODE_VERSION}/node-v6.9.2-x64.msi"
+
+if [ "x$1" == "xcn" ]; then
+  PIP_OPTS="-i http://pypi.douban.com/simple --trusted-host pypi.douban.com"
+  NPM_OPT="--registry=https://registry.npm.taobao.org"
+  NODE_URL="https://npm.taobao.org/mirrors/node/$NODE_VERSION/node-$NODE_VERSION-linux-x64.tar.xz"
+fi
 
 fatal_error()
 {
@@ -40,7 +46,7 @@ check_node()
 
         if [ -z "$(which npm)" ];then
             echo "Could not found npm, downloading..."
-            curl -L https://npm.taobao.org/mirrors/node/$NODE_VERSION/node-$NODE_VERSION-linux-x64.tar.xz | tar Jx || fatal_error download failed.
+            curl -L $NODE_URL | tar Jx || fatal_error download failed.
             mv node-$NODE_VERSION-linux-x64/bin/* $VIRTUAL_ENV/bin/
             mv node-$NODE_VERSION-linux-x64/lib/* $VIRTUAL_ENV/lib/
             mv node-$NODE_VERSION-linux-x64/include/* $VIRTUAL_ENV/include/
@@ -49,7 +55,7 @@ check_node()
         fi
 
         echo "Installing less2css..."
-        npm install less --registry=https://registry.npm.taobao.org
+        npm install less 
         ln -fs `pwd`/node_modules/less/bin/lessc $VIRTUAL_ENV/bin/lessc
     fi
 }
