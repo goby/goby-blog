@@ -11,7 +11,7 @@ function doCompile()
     #npm install less
     #export PATH=$PATH:./node_modules/.bin/
     bash ./setup
-    hyde -v gen -r
+    hyde gen -r
 }
 
 # Pull requests and commits to other branches shouldn't try to deploy, just build to verify

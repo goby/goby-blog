@@ -4,17 +4,18 @@ media_url: /media
 base_url: /
 plugins:
   - hyde.ext.plugins.meta.MetaPlugin
-  - hyde.ext.plugins.git.GitDatesPlugin
+  - hyde.ext.plugins.vcs.GitDatesPlugin
   - extensions.combine.CombinePlugin
   - hyde.ext.plugins.languages.LanguagePlugin
-  - hyde.ext.plugins.auto_extend.AutoExtendPlugin
-  - hyde.ext.plugins.sorter.SorterPlugin
-  - hyde.ext.plugins.tagger.TaggerPlugin
-  - hyde.ext.plugins.less.LessCSSPlugin
+  - hyde.ext.plugins.meta.AutoExtendPlugin
+  - hyde.ext.plugins.meta.SorterPlugin
+  - hyde.ext.plugins.meta.TaggerPlugin
+  - hyde.ext.plugins.css.LessCSSPlugin
   - extensions.css.CSSPrefixerPlugin
   - extensions.text.TextlinksPlugin
-  - hyde.ext.plugins.textlinks.TextlinksPlugin
+  - hyde.ext.plugins.text.TextlinksPlugin
   - extensions.images.ImageThumbnailsPlugin
+  #- extensions.md2html.Md2HtmlPlugin
   
 context:
   data:
