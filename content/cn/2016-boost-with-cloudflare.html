@@ -154,7 +154,7 @@ Local Storage，直接去掉无畏的请求
 
 我来实现的话，认为需要实现以下几个部分：
 
-1. 实现聚合的 Nginx 模块可以利用 subrequest + upstream 简单实现请求的聚合，如下
+1). 实现聚合的 Nginx 模块可以利用 subrequest + upstream 简单实现请求的聚合，如下
 ```
               / subrequest 1.js -- upstream
 MainRequest -+- subrequest 2.js -- upstream
@@ -164,12 +164,12 @@ MainRequest -+- subrequest 2.js -- upstream
 写入响应 body 中。 在实现中，只需要提取与缓存相关的头即可，第二个是要防止恶意攻击，
 比如递归请求。第三个本地缓存的重要性。
 
-2. 实现改写 HTML 的 Nginx 模块，这个直接使用现有的模块 [ngx_http_sub_module][sub-module]
+2). 实现改写 HTML 的 Nginx 模块，这个直接使用现有的模块 [ngx_http_sub_module][sub-module]
 即可。例如：
 ```nginx
 location / {
-  sub_filter '<script>' '<script type="text/rocketscript">'
-  sub_filter '<script src=' '<script data-rocketsrc='
+  sub_filter '<script>' '<script type="text/rocketscript">';
+  sub_filter '<script src=' '<script data-rocketsrc=';
   ...
 }
 ```
@@ -182,9 +182,10 @@ location / {
 </script>
 ```
 用 [nginx_http_substitutions_module][subs-module] 直接用 正则表达式，能实现
-更加强大的功能， 不过还需要和上面的需求一样，需要一个缓存保障性能。
+更加强大的功能， 不过还需要和上面的需求一样，需要一个缓存保障性能。(其实不能简单地进行正则
+替换，需要对整个 DOM 树进行解析，否则在部分场景下，比如有 `<pre>` 的时候会出问题)
 
-3. 客户端 Rocket Loader 的实现，简单的实现如下:
+3). 客户端 Rocket Loader 的实现，简单的实现如下:
 ```javascript
   var scripts = document.getElementsByTagName('script');
   var rockets = [];
@@ -206,10 +207,10 @@ location / {
   });
 ```
 
+如何解决 rocket loader 的兼容性问题呢？
 
 [sub-module]: http://nginx.org/en/docs/http/ngx_http_sub_module.html
 [subs-module]: https://github.com/yaoweibin/ngx_http_substitutions_filter_module
-
 [how-rocket-loader]: https://blog.cloudflare.com/56590463/
 
 
