@@ -11,7 +11,7 @@ $(function() {
     luffy.mathjax();
     luffy.effects();
     luffy.search();
-    luffy.timeago();
+    //luffy.timeago();
     luffy.comments();
     luffy.gallery();
 });
