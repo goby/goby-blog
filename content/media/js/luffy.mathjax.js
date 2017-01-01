@@ -11,6 +11,7 @@ luffy.mathjax = function() {
 
     /* Otherwise, load. Input: TeX/AMS. Output: HTML+CSS.*/
     $script(mathjax + "?config=TeX-AMS_HTML-full&delayStartupUntil=configured",
+	    {"data-cfasync": false},
 	    function() {
 		  /* Add more configuration stuff */
 		  MathJax.Hub.Config({

@@ -35,11 +35,12 @@
     doc[readyState] = 'loading'
   }
 
-  function $script(paths, idOrDone, optDone) {
+  function $script(paths, attrOrDone, optDone) {
     paths = paths[push] ? paths : [paths]
-    var idOrDoneIsDone = idOrDone && idOrDone.call
-      , done = idOrDoneIsDone ? idOrDone : optDone
-      , id = idOrDoneIsDone ? paths.join('') : idOrDone
+    var idOrDoneIsDone = attrOrDone && attrOrDone.call
+      , done = idOrDoneIsDone ? attrOrDone : optDone
+      , id = (idOrDoneIsDone || !attrOrDone.id) ? paths.join('') : attrOrDone.id
+      , attr = idOrDoneIsDone ? {} : attrOrDone
       , queue = paths.length
     function loopFn(item) {
       return item.call ? item() : list[item]
@@ -62,13 +63,13 @@
         }
         scripts[path] = 1
         id && (ids[id] = 1)
-        create(!validBase.test(path) && scriptpath ? scriptpath + path + '.js' : path, callback)
+        create(!validBase.test(path) && scriptpath ? scriptpath + path + '.js' : path, attr, callback)
       })
     }, 0)
     return $script
   }
 
-  function create(path, fn) {
+  function create(path, attr, fn) {
     var el = doc.createElement('script')
       , loaded = f
     el.onload = el.onerror = el[onreadystatechange] = function () {
@@ -77,6 +78,9 @@
       loaded = 1
       scripts[path] = 2
       fn()
+    }
+    for (var a in attr) {
+      el.setAttribute(a, attr[a])
     }
     el.async = 1
     el.src = path
