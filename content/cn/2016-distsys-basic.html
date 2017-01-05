@@ -6,6 +6,42 @@ tags:
  - tech
 ---
 
+## 网络和节点
+
+node，或者成为 process, agent, actor, member 
+
+### 节点
+
++ 节点之间很慢，节点内部很快
++ 所以任务尽可能在一个节点内完成
++ 节点可靠
+
+## 传输层
+
+通常我们都是通过 TCP 或者 UDP 来实现的。不过本着
+
+> 不管如何优化 UDP， 最后都会变成实现一个 TCP
+
+的原则，我们最好使用 TCP，TCP 本身诸多有点能够让我们更专注上层。
+
+### TCP
+
++ Rule 1: 如果能用 TCP ，就用 TCP
++ Rule 2: 默认 TCP 也许不快，但是又一堆参数和算法可以优化，常见比如fask/sask/流控/reuse port 等等
++ Rule 3: TCP 能够帮我们防止重复发包/丢包/乱序/探活
++ Rule 4: 应用层必须处理应用层的问题，比如必须设置超时
++ Rule 5: 如果传输最终失败，就必须有相应的措施：要么丢失信息要么重试
+
+### UDP
+
++ Rule 1: UDP 是简单的 IP 复用
++ Rule 2: UDP 大部分情况不能满足速度的需求
++ Rule 3: UDP 可能被随意丢弃，可能会重复，可能会乱序，这些统统都要自己处理
++ Rule 4: 调试 UDP 比 TCP 难(因为你不知道为什么包丢了等等)
++ Rule 5: 只有认为 TCP 状态机非常昂贵的情况下，采用 UDP，比如内存因素，比如大量短连接，比如端口复用
++ Rule 6: UDP 应该用于 best-effort delivery，比如电话，人能够自己识别和重试，比如游戏，卡顿并且快速恢复，
+比如其他正确处理下层混乱情况的协议
+
 ## 时钟
 
 时钟的作用就是让我们知道事件的先后顺序、状态的变化过程先后。
@@ -53,5 +89,19 @@ tags:
 + 将 Lamport Clock 变成所有进程的时钟向量， $v = [t_1...t_n]$
 + $t_i' = max(t_i, t_{msg,i})$
 + 对于进程 $p_i$， 一旦执行操作，则增加向量中 $v'(p_i) = v(p_i) + 1$
-+ 提供偏序因果，即：
-  + $A < B$， 当且仅当 $ A_i <= B_i $，且存在 `k`，使得 $A_k < B_k$
++ 提供偏序因果，即： $A < B$， 当且仅当 $ A_i <= B_i $，且存在 `k`，使得 $A_k < B_k$
++ 编程上： 过去共享，但是当前状态独立
++ 通常只有当前状态才是需要考虑的，过去状态可以丢弃
++ `O(p)` 的空间复杂度，其中 p 为进程个数
++ 有个问题，当进程退出时，需要特殊的方式进行GC，或者不失正确性的情况下直接忽略
++ 有两种数据结构：Dotted Version Vectors 和 Interval Tree Clocks
++ [Interval Tree Clocks](http://gsd.di.uminho.pt/members/cbm/ps/itc2008.pdf): 对于反复
+创建退出进程比较合适
++ [Dotted Version Vectors](http://gsd.di.uminho.pt/members/vff/dotted-version-vectors-2012.pdf):
+适合于C/S 架构
+
+### GPS/原子时钟
+
+Spanner 就是 使用这种方案，也是目前知道的唯一使用这种方案的公司。
+ 
+
