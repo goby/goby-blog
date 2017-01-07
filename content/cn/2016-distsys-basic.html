@@ -14,7 +14,49 @@ node，或者成为 process, agent, actor, member
 
 + 节点之间很慢，节点内部很快
 + 所以任务尽可能在一个节点内完成
-+ 节点可靠
++ 节点可靠，1) 挂掉都是作为个体挂，2) 挂掉可感知，3) 状态一致， 4) 状态转换可知
++ 逻辑上的单节点本身也可以是分布式系统，因为对外提供一致性操作
++ 进程的形式模型： [通信顺序进程][csp]， [π演算][pi]， [Ambient演算][ambient]， [Actor模型][actor]
+
+[csp]: https://en.wikipedia.org/wiki/Communicating_sequential_processes
+[pi]: https://en.wikipedia.org/wiki/Π-calculus
+[ambient]: https://en.wikipedia.org/wiki/Ambient_calculus
+[Actor]: https://en.wikipedia.org/wiki/Actor_model
+
+#### 通信顺序进程
+
+通信顺序进程，就是 Communicating Sequential Processes, 简称 CSP(和 CPS continuation passing-style 好像)
+。  由于不是科班出身，且对计算机理论并不了解，所以对于这种形式模型不了解。 还好学过数学，好歹能够简单理解下。
+
+CSP 是描述并发系统中交互模式的形式语言，影响到 occam 以及 golang、crystal 等。 以及例如 [RaftLib](http://www.raftlib.io)
+-- 一个目标是在多人协同开发下还能提供极端性能的可移植并行处理系统。
+
+由于原始的CSP 比较难理解，以下是从wiki上摘抄的非形式化表达。
+
+**定义**
+
+CSP 提供了两种不同类型的元素：
+
+1. Events，表示通信或者交互，基本特性是独立且非持久的。
+可以是原子名(on, off)、组成名(valve.open, valve,close) 或者 输入/输出事件(`mouse?xy`, `screen!bitmap`)
+2. 基本进程，表示基本的行为，例如包含 _STOP_(进程没有交流，或者成为死锁)， _SKIP_(表示
+成功结束)
+
+**代数操作符**
+
+//
+
+#### π演算
+
+//
+
+#### Ambient演算
+
+//
+
+#### Actor模型
+
+//
 
 ## 传输层
 
