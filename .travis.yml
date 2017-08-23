@@ -6,7 +6,7 @@ script:
 after_success:
   - git config --global user.name "goby" 
   - git config --global user.email "goby@foxmail.com"
-  - openssl aes-256-cbc -K encryped_${EN_LABEL}_key -iv $encryped_${EN_LABEL}_key -in deploy.key.enc -out deploy_key -d
+  - openssl aes-256-cbc -K $encrypted_0538ff262ea0_key -iv $encrypted_0538ff262ea0_iv -in deploy.key.enc -out deploy_key -d
   - chmod 600 deploy_key
   - eval `ssh-agent -s`
   - ssh-add deploy_key
