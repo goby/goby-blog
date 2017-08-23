@@ -1,0 +1,150 @@
+---
+title: 分布式系统理论基础摘要
+keywords: distsys
+date: 2017-01-08 00:33:07
+uuid: 5d5b956c-2f79-4f8b-bda7-4ea79dfbce21
+tags:
+ - tech
+---
+
+## 网络和节点
+
+node，或者成为 process, agent, actor, member 
+
+### 节点
+
++ 节点之间很慢，节点内部很快
++ 所以任务尽可能在一个节点内完成
++ 节点可靠，1) 挂掉都是作为个体挂，2) 挂掉可感知，3) 状态一致， 4) 状态转换可知
++ 逻辑上的单节点本身也可以是分布式系统，因为对外提供一致性操作
++ 进程的形式模型： [通信顺序进程][csp]， [π演算][pi]， [Ambient演算][ambient]， [Actor模型][actor]
+
+[csp]: https://en.wikipedia.org/wiki/Communicating_sequential_processes
+[pi]: https://en.wikipedia.org/wiki/Π-calculus
+[ambient]: https://en.wikipedia.org/wiki/Ambient_calculus
+[Actor]: https://en.wikipedia.org/wiki/Actor_model
+
+#### 通信顺序进程
+
+通信顺序进程，就是 Communicating Sequential Processes, 简称 CSP(和 CPS continuation passing-style 好像)
+。  由于不是科班出身，且对计算机理论并不了解，所以对于这种形式模型不了解。 还好学过数学，好歹能够简单理解下。
+
+CSP 是描述并发系统中交互模式的形式语言，影响到 occam 以及 golang、crystal 等。 以及例如 [RaftLib](http://www.raftlib.io)
+-- 一个目标是在多人协同开发下还能提供极端性能的可移植并行处理系统。
+
+由于原始的CSP 比较难理解，以下是从wiki上摘抄的非形式化表达。
+
+**定义**
+
+CSP 提供了两种不同类型的元素：
+
+1. Events，表示通信或者交互，基本特性是独立且非持久的。
+可以是原子名(on, off)、组成名(valve.open, valve,close) 或者 输入/输出事件(`mouse?xy`, `screen!bitmap`)
+2. 基本进程，表示基本的行为，例如包含 _STOP_(进程没有交流，或者成为死锁)， _SKIP_(表示
+成功结束)
+
+**代数操作符**
+
+//
+
+#### π演算
+
+//
+
+#### Ambient演算
+
+//
+
+#### Actor模型
+
+//
+
+## 传输层
+
+通常我们都是通过 TCP 或者 UDP 来实现的。不过本着
+
+> 不管如何优化 UDP， 最后都会变成实现一个 TCP
+
+的原则，我们最好使用 TCP，TCP 本身诸多有点能够让我们更专注上层。
+
+### TCP
+
++ Rule 1: 如果能用 TCP ，就用 TCP
++ Rule 2: 默认 TCP 也许不快，但是又一堆参数和算法可以优化，常见比如fask/sask/流控/reuse port 等等
++ Rule 3: TCP 能够帮我们防止重复发包/丢包/乱序/探活
++ Rule 4: 应用层必须处理应用层的问题，比如必须设置超时
++ Rule 5: 如果传输最终失败，就必须有相应的措施：要么丢失信息要么重试
+
+### UDP
+
++ Rule 1: UDP 是简单的 IP 复用
++ Rule 2: UDP 大部分情况不能满足速度的需求
++ Rule 3: UDP 可能被随意丢弃，可能会重复，可能会乱序，这些统统都要自己处理
++ Rule 4: 调试 UDP 比 TCP 难(因为你不知道为什么包丢了等等)
++ Rule 5: 只有认为 TCP 状态机非常昂贵的情况下，采用 UDP，比如内存因素，比如大量短连接，比如端口复用
++ Rule 6: UDP 应该用于 best-effort delivery，比如电话，人能够自己识别和重试，比如游戏，卡顿并且快速恢复，
+比如其他正确处理下层混乱情况的协议
+
+## 时钟
+
+时钟的作用就是让我们知道事件的先后顺序、状态的变化过程先后。
+以前不知道为什么 spanner 要弄个 GPS + 原子钟， 后来了解分布式系统
+中时钟的作用，才能深刻理解。 时钟就是为了给不同数据中心的事务确定先后
+顺序。
+
+现在多核时代，不同的CPU之间其实也存在时钟同步问题。接下来就需要安排详读 
+[Hrtimers and Beyoung: Transforming the Linux Time Subsystems](https://www.landley.net/kdocs/ols/2006/ols2006v1-pages-333-346.pdf)
+
+
+###  什么是 wall clock?
+
+就是 `<sys/time.h>` 内的时间，或者说我们常调用的 `gettimeofday()` 就是。
+通常它只能让我们得到偏序的结果(即 inner-process events 的顺序)。
+但这个有什么问题呢？ 为什么大家要研究时钟问题？
+
++ NTP并不是如我们想象的那么美好，
++ 节点间无法完全同步，节点间的网络传输有时延，处理有耗时，不能确定节点间
+通信通道的稳定性
++ 硬件时钟有偏差，时钟会漂移(比如常规晶振的精度，一天延迟个几毫秒也是很常见)
++ By Centuries ????
++ 按照定义， [POSIX 时间](https://en.wikipedia.org/wiki/Unix_time)并非单调，
+为什么这么说呢？因为 POSIX 时间采用格列高历，有闰秒的考虑(比如今天 2017-1-1 07:59:59 CST)
+这里就多了1s，导致 POSIX 时间在这里可能会回退 1s。实际上，最好用 TAI，国际原子时，
+每天严格 86400s ，不会考虑任何闰秒
++ 想要的时间精度并不一定能够达到
++ 线程可能会睡眠
++ 运行时可能睡眠，例如电源管理器为了省电， 给 CPU 降频
++ [系统/硬件可能休眠](https://events.linuxfoundation.org/slides/2011/linuxcon-japan/lcj2011_wysocki.pdf)
+
+总而言之，最好别用（也可以看看 areiz 与 XXX 关于 Redis Lock 的讨论）。
+
+### 什么是 lamport clock?
+
+来自 Lamport 著名的论文 [Times, Clocks and Ordering of Events in Distributed Systems](http://research.microsoft.com/en-us/um/people/lamport/pubs/time-clocks.pdf)
+
+每个进程单独计时，每次变更时间+1，单调递增，每次信息传递都附上时间。 收到信息， t' = max(t, t_msg+1)
+如果我们有一堆全序的进程，那么产生的事件也是全序的，但是可能反直觉(?)
+
+### 什么是矢量时钟？
+
+[Why Logical Clocks Are Easy](http://cacm.acm.org/magazines/2016/4/200168-why-logical-clocks-are-easy/abstract)
+
++ 将 Lamport Clock 变成所有进程的时钟向量， $v = [t_1...t_n]$
++ $t_i' = max(t_i, t_{msg,i})$
++ 对于进程 $p_i$， 一旦执行操作，则增加向量中 $v'(p_i) = v(p_i) + 1$
++ 提供偏序因果，即： $A < B$， 当且仅当 $ A_i <= B_i $，且存在 `k`，使得 $A_k < B_k$
++ 编程上： 过去共享，但是当前状态独立
++ 通常只有当前状态才是需要考虑的，过去状态可以丢弃
++ `O(p)` 的空间复杂度，其中 p 为进程个数
++ 有个问题，当进程退出时，需要特殊的方式进行GC，或者不失正确性的情况下直接忽略
++ 有两种数据结构：Dotted Version Vectors 和 Interval Tree Clocks
++ [Interval Tree Clocks](http://gsd.di.uminho.pt/members/cbm/ps/itc2008.pdf): 对于反复
+创建退出进程比较合适
++ [Dotted Version Vectors](http://gsd.di.uminho.pt/members/vff/dotted-version-vectors-2012.pdf):
+适合于C/S 架构
+
+### GPS/原子时钟
+
+Spanner 就是 使用这种方案，也是目前知道的唯一使用这种方案的公司。
+ 
+

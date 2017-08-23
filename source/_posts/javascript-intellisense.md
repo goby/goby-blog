@@ -1,0 +1,51 @@
+---
+title: JavaScript Intellisense
+keywords: 
+date: 2015-05-14 23:11:00
+uuid: fcf91849-61af-49d3-a425-df62aa930434
+tags:
+ - tech
+---
+
+{# main content #}
+
+现在的cocos2d-js官方API文档存在比较多的缺失，特别对我这种新手来说，对cocos2d-x 的 API 完全不熟悉，这三天写js都有点头大，经常一个类要先打开官方jsdoc看，没有的话再放狗搜，狗搜到了之后经常是写一行运行一遍，效率齐低。今天下午喝完咖啡突然想起来以前写 ASP.Net 不是可以用 Visual Studio 来做 js 的自动补全吗？
+
+根据Mads Kristensen（VS web code editor成员）的说法是当时考虑了三种方式[^Mads]：
+
+1. 为所有的js的文件做索引，显然这种缺点非常明显，就是性能会成为瓶颈的，而且会有很多干扰选项
+2. 只索引 HTML 中 `<script>` 中的内容，这种能够减少非常多的负担而且能够符合一部分Web开发需求，但是假如说只写js怎么办？难道弄到一个HTML 中去？
+3. 显然，准确的方式应该是寻求一种和 using 或者 #include 的方式
+
+最后，他们决定使用如下注释的方式（天啊撸不知道vc会不会像喷golang那样喷VS）：
+
+    /// <reference path="../app/respond.js" />
+
+就可以像using 那样根据引入的模块提示了（可以说VS的 Intellisense 真是甩其他IDE几条街），甚至可以直接从 Solution Explorer 中把 .js 拖到打开的 .js 自动完成reference，如我手残者的福音啊。
+
+但是这个时候欲求不满的用户又叕提出需求了，假如我有几个公共的 js 需要引用怎么办？难道要我蛋疼到每个文件写之前都 reference 一次吗？于是他们在开发 VS2012 的时候就新加入了个 _references.js 的文件，只要被添加到这个文件的 .js 都默认被所有的 .js 引用。那么问题来了， _references.js 该放在哪里？ 放在根目录下肯定不合适啊，于是规定放在 ~/Scripts/ 下。 但是用户又会说，我喜欢放在 js/ 下呢？放在 res/js/ 下呢？
+
+于是又有了选择，咱们可以在工具-->选项里配置，这里有个快捷键：Ctrl+Q，就可以搜索选项了！真棒！
+
+终于我们绕了一个大弯，如何让 VS 的 javascript editor 支持 cocos2d-js 的智能提示呢？
+简单啊，我们新建个Web 工程，把文件以 link 方式添加进来，然后用 everything 把所有的js都扔进来就行了。于是就可以像下面这样：
+    
+![JavaScript Intellisense][ji]
+[ji]: [[!!images/js/js-intellisense.png]] "Look"
+    
+太棒了！！
+
+等等，前段时间巨硬不是推出了前端的福音、Mac 软狗欢呼雀跃、即将一统江湖的神兵利器吗？没错就是 Visual Studio Code 怎么用？
+
+其实和上面的方式就是一样的:-) 只要把 _references.js 放在 当前folder 的ROOT 下就行了。
+*不过在我的8M js 面前 Code崩溃了哇哈哈哈哈哈哈哈*
+
+![lol][]
+[lol]: [[!!images/js/lol.png]] "哈哈哈哈哈哈哈"
+
+[^Mads]: [The Story Behind _References.js](http://madskristensen.net/post/the-story-behind-_referencesjs)
+
+{# Local Variables: #}
+{# mode: markdown   #}
+{# End:             #}
+

@@ -1,0 +1,100 @@
+---
+title: 可扩展交换性原则：多核多处理下可扩展性软件开发
+keywords: commute
+date: 2015-12-21 19:53:53
+uuid: 43a96e88-de4d-4d26-9002-e19bb592e393
+tags:
+ - tech
+---
+
+原文：
+<http://web.mit.edu/amdragon/www/pubs/commutativity-sosp13.pdf>
+
+MorningPaper： 
+<http://blog.acolyer.org/2015/04/24/the-scalable-commutativity-rule-designing-scalable-software-for-multicore-processors/>
+
+不管何种实现，API的设计方式都是对系统可扩展性影响最大的因素（深以为然，之前BOSS
+让我一定要慎重考虑API的设计，我还不觉得什么，后来又说系统无状态化，才发觉API设计
+的重要性）。**Clements 等人**定义的可扩展交换性原则：COMMUTER 就可以指导我们如
+何设计API。一个例子就是根据他们的API设计规范来设计，18个文件系统的POSIX相关调用
+都能显著地提高可扩展性。
+
+Colyer认为需要的工作是：
+
+ a. 关注API设计在可扩展性的影响，相对应的是技术实现和后期优化
+ b. 并不是所有调用都是频繁的，因此关注于每个调用执行边界
+
+首先作者贴了这么一段引文：
+
+> At the core of our approach is this scalable commutativity rule: 
+> In any situation where several operations commute—meaning there’s 
+> no way to distinguish their execution order using the interface—they 
+> have an implementation whose memory accesses are conflict-free 
+> during those operations. Or, more concisely, whenever interface
+> operations commute, they can be implemented in a way that scales.
+
+也就是说，任何情况下多个操作Commute（不是很明白怎么直接翻译，交互？意思是使用接口
+不会混淆他们的执行顺序），那么他们的内存操作必须是无冲突的。
+
+他们提出了一个原则：SIM -- State dependent, Interface-based, Monotonic，即
+状态独立、基于接口且单调的（Not very clear）。
+
+> When operations commute in the context of a specific system state, 
+> specific operation arguments, and specific concurrent operations, 
+> we show that an implementation exists that is conflict-free for 
+> that state and those arguments and concurrent operations. This 
+> exposes many more opportunities to apply the rule to real 
+> interfaces—and thus discover scalable implementations—than a 
+> more conventional notion of commutativity would.
+
+意思是，如果操作有一个特定系统状态、特定操作参数、特定并发指令的上下文，那么作者
+也能够利用这些原则去实现一个状态/参数/并发无冲突的实现。
+
+比如对于unix 系统调用，很少有无条件的调用：`getpid()`是一个这种例子。而其他大
+部分则是与状态参数相关的，比如调用 `open("a", O_CREATE|O_EXCL)` 在不同工作
+路径下调用则结果不同。
+
+COMMUTER 工具能够用一个接口模型，能够限定一系列操作下的精确条件。“该工具能够集成
+到开发过程中，用来驱动最初设计与实现、或者改进现有实现、或者帮助开发者更好地理解接
+口的交换性”。可以说，不同线程内存访问的无冲突化是可扩展性的途径。
+
+## COMMUTER
+
+用户可以利用COMMUTER的组件 ANALYZER，依据接口的参数和状态生成一系列表达式，这些
+表达式可以直接通过 TESTGEN 转化成实际的测试用例。
+
+为了形象的表达他们的工作，他们介绍了一种新的标记-- 冲突覆盖率。冲突覆盖率描述的是
+在共有数据接口下的所有可能的模式调用。例如对于 18 个POSIX系统调用， TESTGEN 
+生成 13664 个测试用例，用来查找 Linux ramfs 文件系统的虚拟内存系统的可扩展性问题。
+
+MTRACE 用一个修改过的 qemu 和 Linux内核的虚拟机运行这些测试用例，检查无冲突下各个
+实现的冲突覆盖率。
+
+![fig-5:test result][sosp]
+[sosp]: [[!!images/sosp/sosp1.png]] "Test result of the paper by COMMUTER"
+
+作者的实现： <http://pdos.csail.mit.edu/commuter>
+
+最后总结出的4条设计可交换接口的Guideline（**完完全全不理解**）：
+
+ 1. 组件拆分，每个操作制作一件事情。比如 `fork` 有创建进程和当前进程的状态与属性快照的功能。这个说明它没办法与其他
+    方法commute，而`posix_spawn`则是OK的（不了解这个系统调用）
+ 2. 允许自由实现。比如允许 `open` 返回任何未使用的文件描述符，而不是最小的那个
+ 3. 允许弱序（Weak ordering）。比如通过local unix domain socket、甚至UDP来发送有序消息。在多读多写的场景允许
+    发送接收commute
+ 4. 异步释放资源。许多POSIX操作许多全局的影响必须在操作返回前可见
+
+4个设计实现的：
+
+ 1. Layer scability.
+ 2. Defer work. 
+ 3. Precede perssimism with optimism
+ 4. Don't read unless necessary.
+
+ 最后这几点不是很了解，接下来挑个时间解读一下原文，比如第二点，在原文指的是资源释放使用
+ 垃圾回收方式。
+
+{# Local Variables:      #}
+{# mode: markdown        #}
+{# indent-tabs-mode: nil #}
+{# End:                  #}

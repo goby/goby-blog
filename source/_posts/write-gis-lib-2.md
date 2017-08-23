@@ -1,0 +1,39 @@
+---
+title: 一步一步写GIS库 2.使用的第三方库
+keywords: "GIS, zmaply"
+date: 2013-11-30 00:00:00
+uuid: 5f6db065-38d1-4b64-af20-de632aa0f395
+tags:
+ - tutorial
+---
+
+上一篇说到了关于GIS的数据结构、组织和渲染的一些基本知识，这一篇就讲讲要实现这些需要用到得第三方库的情况。
+
+空间数据模型的话如果不自己写可以使用[GEOS](http://trac.osgeo.org/geos/)，这个库暂时不用，我们将自己写一些简单的来实现基本的功能。并且为了保证日后能够将这个库融入到我们的代码中，可能需要参照它的一些写法。
+
+接下来介绍使用到得库：
+
+1.  [STL](http://www.sgi.com/tech/stl/) - 这个是C++中，因为涉及到很多容器算法，故而直接用STL
+2.  [OpenGL ES 2](http://www.khronos.org/opengles/2_X/) - 图形渲染方面使用OpenGL ES 2.0
+3.  [SQLite](http://www.sqlite.org/) - 移动设备中经常使用到的数据管理的数据库
+4.  [GLUES](https://code.google.com/p/glues/) - 关于GLU可以参照这个[FAQ](http://www.opengl.org/archives/resources/faq/technical/glu.htm)，简单来说就是给OpenGL添加一些额外的高级功能，GLUES就是GLU在嵌入式设备上得移植
+5.  [shapelib](http://shapelib.maptools.org/) - Shapefile 的 C 库，用来读写ESRI的Shapefile文件以及属性文件(.dbf)
+6.  [proj.4](http://trac.osgeo.org/proj/) - 地图变换的库，由USGS提供
+7.  [libjson](http://sourceforge.net/projects/libjson/) - JSON 的操作库
+8.  [Eigen](http://eigen.tuxfamily.org/) - C++模板库，提供线性代数相关的算法
+9.  [Clipper](http://www.angusj.com/delphi/clipper.php) - 多边形叠加切割的开源库
+
+基本上用到的就是以上8个开源的第三方库。除了STL是C++标准库和OpenGL ES 2在现代移动操作系统中支持之外，其他的没能完全支持，因此其他的库的代码需要添加到代码中。那么为什么要使用这些库呢？
+
+前三个很好理解，第四个GLUES可以提供包含二次曲面、透视变换、镶嵌操作、贴图混叠等功能，这些在地图显示中都比较重要。Shapelib库是为了对Shapefile的读写方便使用到得库，毕竟ESRI作为GIS行业的老大，需要支持它的开源标准。Proj.4 也比较好理解，在GIS中坐标系统、空间变换是重要的内容。libjson 即JSON的支持。Eigen 提供了线性代数相关的算法，包含矩阵运算、向量运算等，这些在计算图形面积、外包框等都很重要。Clipper 就是为了让叠加分析能够方便实现以及最后显示上面一些图形的叠加的方便实现。
+
+好了准备得差不多了，差不多可以准备开搞了。
+我接下来使用的IDE环境是 XCode 4.5 ，为什么呢？只是为了方便消除前期代码中的一些语法语义错误而已。我介绍介绍我的使用环境：
+
+1. git 1.7.12.4
+2. XCode 4.5 with Command Tools
+3. 没了
+
+{# Local Variables: #}
+{# mode: markdown   #}
+{# End:             #}

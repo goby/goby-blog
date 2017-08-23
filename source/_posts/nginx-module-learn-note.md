@@ -1,0 +1,400 @@
+---
+title: Nginx 模块开发
+keywords: 
+date: 2015-12-17 19:33:54
+uuid: 40c5b314-21b7-4c0c-a0f1-b869b2efd127
+tags:
+ - tech
+---
+
+1. 使用 OpenResty -- 使用lua语言
+2. 使用原生 -- 直接开发第三方模块
+
+Emiller's Guide To Nginx Module Development
+http://www.evanmiller.org/nginx-modules-guide.html
+
+Emiller's Advanced Topics In Nginx Module Development
+http://www.evanmiller.org/nginx-modules-guide-advanced.html
+
+Handlers -- 处理器，处理请求和产生结果
+Filters -- 过滤器，过滤Handler 产生的结果
+Load-Balancers -- 负载均衡器，反向代理的时候用到
+
+一个模块是如何工作的？
+通常，在nginx启动时，所有的模块都有机会根据配置加载到程序中，
+如果有多个 Handler 同时附加到某个位置，则只有一个可以成功载入。
+
+Handler可能返回三种值：
+ 1. 所有均正确载入
+ 2. 有错误但还能工作
+ 3. 无法工作
+
+如果Handler没有错误，那么Filter就会接着处理Handler的输出。
+多个过滤器可以一起协同工作，比如响应结果就能压缩和分块。
+Filter以经典的"Chain of Responsibility" 模式工作。和 webpy 的 middleware 一样。
+
+Filter不会等到上一个处理均结束才开始，而是类似于Unix的管道一样，
+以 buffer形式（流水线），可以理解成流式的。
+
+一个处理周期如下：
+ 1. 客户端发送HTTP请求
+ 2. Nginx选择合理的Handler处理（根据配置中的location来）
+ 3. [可选]选用某个后端
+ 4. Handler 处理完把每个Buffer传给第一个Filter
+ 5. 第一个Filter传给第二个Filter
+ 6. ... 直到最后一个并把所有响应给Client
+
+# Nginx 模块的组成部分
+
+## 1. 配置部分
+命名： ngx_http_<module_name\>_(main|srv|loc)_conf_t，例如 dav 模块：
+
+    ::c
+    typedef struct {
+        ngx_uint_t methods;
+        ngx_flag_t create_full_put_path;
+        ngx_uint_t access;
+    } ngx_http_dav_loc_conf_t;
+
+例如 ngx-redis模块：
+
+    ::c
+    typedef struct {
+        nginx_http_upstream_conf_t  upstream;      // set upsteam
+        nginx_int_t                 index;         // 
+        nginx_int_t                 db;
+        nginx_uint_t                gzip_flag;
+
+        ngx_http_complex_value_t   *complex_target;
+    } ngx_http_redis_loc_conf_t;
+
+## 2. 指令部分
+一般是 ngx_command_t 的数组：
+
+    ::c
+    static ngx_command_t  ngx_http_redis_commands[] = {
+        { ngx_string("redis_pass"),
+          NGX_HTTP_LOC_CONF|NGX_HTTP_LIF_CONF|NGX_CONF_TAKE1,
+          ngx_http_redis_pass,
+          NGX_HTTP_LOC_CONF_OFFSET,
+          0,   
+          NULL },
+
+        #if defined nginx_version && nginx_version >= 8022
+        { ngx_string("redis_bind"),
+          NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
+          ngx_http_upstream_bind_set_slot,
+          NGX_HTTP_LOC_CONF_OFFSET,
+          offsetof(ngx_http_redis_loc_conf_t, upstream.local),
+          NULL },
+        #endif
+
+        { ngx_string("redis_connect_timeout"),
+          NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
+          ngx_conf_set_msec_slot,
+          NGX_HTTP_LOC_CONF_OFFSET,
+          offsetof(ngx_http_redis_loc_conf_t, upstream.connect_timeout),
+          NULL },
+
+        { ngx_string("redis_send_timeout"),
+          NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
+          ngx_conf_set_msec_slot,
+          NGX_HTTP_LOC_CONF_OFFSET,
+          offsetof(ngx_http_redis_loc_conf_t, upstream.send_timeout),
+          NULL },
+
+        ...
+    }
+
+一个ngx_command_t 的结构如下：
+
+    ::c
+    struct ngx_command_t {
+        ngx_str_t         name; // 指令名称
+        ngx_uint_t        type; // 指令作用的类型
+        char  *(*set)(ngx_conf_t *cf, ngx_command_t *cmd, void *conf); // 设置的回调
+        ngx_uint_t        conf;  // 标识变量在的位置，是在Main、Server还是Location
+        ngx_uint_t        offset; // 确定变量在结构体中的位置
+        void             *post; // 后处理的指针，一般是个NULL
+    };
+
+
+具体参见：http://www.nginxguts.com/2011/09/configuration-directives/
+
+
+## 3. 模块上下文
+静态 `ngx_http_module_t` 结构体，命名`ngx_http_<module_name>_module_ctx`，功能包括：
+
+ - preconfiguration(conf)
+ - postconfiguration
+ - create_main_conf -- 分配内存以及设定初始值
+ - init_main_conf -- 根据nginx.conf 重写初始值
+ - create_srv_conf -- 创建server
+ - merge_srv_conf 
+ - create_loc_conf
+ - merge_loc_conf
+
+redis的模块例子如下：
+
+    ::c
+    static ngx_http_module_t  ngx_http_redis_module_ctx = {
+        ngx_http_redis_add_variables,          /* preconfiguration */
+        NULL,                                  /* postconfiguration */
+
+        NULL,                                  /* create main configuration */
+        NULL,                                  /* init main configuration */
+
+        NULL,                                  /* create server configuration */
+        NULL,                                  /* merge server configuration */
+
+        ngx_http_redis_create_loc_conf,        /* create location configration */
+        ngx_http_redis_merge_loc_conf          /* merge location configration */
+    };
+
+就如上面的例子，一般来说模块只有两个需要实现的， `ngxin_http_<module>_create_loc_conf`
+ 用来分配内存， `nginx_http_<module>_merge_loc_conf` 用来合并配置。
+合并配置会检查配置合法性，如果出错了，就会终止nginx的启动。
+
+preconfiguration 用来做一些配置读取前的准备，
+例如redis模块用来初始化内置的变量 `ngx_http_redis_add_variables`：
+
+    ::c
+    static ngx_int_t
+    ngx_http_redis_add_variables(ngx_conf_t *cf)
+    {
+        ngx_int_t             n;
+        ngx_http_variable_t  *var;
+
+        var = ngx_http_add_variable(cf, &ngx_http_redis_db,
+                                    NGX_HTTP_VAR_CHANGEABLE);
+        if (var == NULL) {
+            return NGX_ERROR;
+        }
+
+        var->get_handler = ngx_http_redis_reset_variable;
+
+        n = ngx_http_get_variable_index(cf, &ngx_http_redis_db);
+        if (n == NGX_ERROR) {
+            return NGX_ERROR;
+        }
+
+        ngx_http_redis_db_index = n;
+
+        return NGX_OK;
+    }
+
+创建location位置的配置，例如redis的方法`nginx_http_redis_create_loc_conf`:
+
+    ::c
+    static void *
+    ngx_http_redis_create_loc_conf(ngx_conf_t *cf)
+    {
+        ngx_http_redis_loc_conf_t  *conf;
+
+        conf = ngx_pcalloc(cf->pool, sizeof(ngx_http_redis_loc_conf_t));
+        if (conf == NULL) {
+    #if defined nginx_version && nginx_version >= 8011
+            return NULL;
+    #else
+            return NGX_CONF_ERROR;
+    #endif
+        }
+
+        /*
+         * set by ngx_pcalloc():
+         *
+         *     conf->upstream.bufs.num = 0;
+         *     conf->upstream.next_upstream = 0;
+         *     conf->upstream.temp_path = NULL;
+         *     conf->upstream.uri = { 0, NULL };
+         *     conf->upstream.location = NULL;
+         */
+
+        conf->upstream.connect_timeout = NGX_CONF_UNSET_MSEC;
+        /* more code */
+        return conf;
+    }
+
+上面的`NGX_CONF_UNSET_MSEC`说明这些变量应该被合并。
+
+合并变量，`ngx_http_redis_merge_loc_conf`:
+
+    ::c
+    static char *
+    ngx_http_redis_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
+    {
+        ngx_hash_init_t            hash;
+
+        ngx_http_redis_loc_conf_t *prev = parent;
+        ngx_http_redis_loc_conf_t *conf = child;
+
+        ngx_conf_merge_msec_value(conf->upstream.connect_timeout,
+                                  prev->upstream.connect_timeout, 60000);
+        if (0/*something bad happend*/) {
+            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "maybe you forget set upstream?");
+            return NGX_CONF_ERROR;
+        }
+        /* more code */
+        return NGX_CONF_OK;
+    }
+
+
+## 4. 模块定义
+一般称为`ngx_http_<module>_module`，一般需要的是上下文、命令，还有类型，
+其他都是一堆钩子函数，正常用不到，用到了再说。
+
+    ::c
+    ngx_module_t  ngx_http_redis_module = {
+        NGX_MODULE_V1,
+        &ngx_http_redis_module_ctx,            /* module context */
+        ngx_http_redis_commands,               /* module directives */
+        NGX_HTTP_MODULE,                       /* module type */
+        NULL,                                  /* init master */
+        NULL,                                  /* init module */
+        NULL,                                  /* init process */
+        NULL,                                  /* init thread */
+        NULL,                                  /* exit thread */
+        NULL,                                  /* exit process */
+        NULL,                                  /* exit master */
+        NGX_MODULE_V1_PADDING
+    };
+
+## 5. 模块安装
+
+安装的方式根据模块类型而不同，以下一一介绍。
+
+# Handlers
+
+## 1. Handler 解析
+
+Handler一般做四件事：
+
+ 1. 获取配置
+ 2. 生成对应的响应，如果是upstream，交给upstream处理
+ 3. 发送 Headers
+ 4. 发送 Body
+
+Handler 方法原型是包含一个 ngx_http_request_t 的参数，然后返回处理正确与否。
+redis 模块的 Handler方法如下：
+
+    ::c
+    static ngx_int_t
+    ngx_http_redis_handler(ngx_http_request_t *r) 
+    {
+        ngx_int_t                       rc; 
+        ngx_http_upstream_t            *u;     
+        ngx_http_redis_ctx_t           *ctx;       
+        ngx_http_redis_loc_conf_t      *rlcf;
+
+        if (!(r->method & (NGX_HTTP_GET|NGX_HTTP_HEAD))) {
+            return NGX_HTTP_NOT_ALLOWED;
+        }                                   
+
+        rc = ngx_http_discard_request_body(r);
+
+        if (rc != NGX_OK) {         
+            return rc;                          
+        }                                           
+
+        if (ngx_http_set_content_type(r) != NGX_OK) {
+            return NGX_HTTP_INTERNAL_SERVER_ERROR;  
+        }                                               
+
+        rlcf = ngx_http_get_module_loc_conf(r, ngx_http_redis_module);
+        if (rlcf->complex_target) {             
+            ngx_str_t           target;                     
+            ngx_url_t           url;                                
+            /* Some code here */
+        }
+        /* Another code there */
+        return NGX_DONE;
+    }
+
+### 获取配置
+
+从上面代码，可以看到应用了宏 `ngx_http_get_module_loc_conf`，相应的，有srv/main的宏。
+
+    ::c
+    #define ngx_http_get_module_main_conf(r, module)                             \
+        (r)->main_conf[module.ctx_index]
+    #define ngx_http_get_module_srv_conf(r, module)  (r)->srv_conf[module.ctx_index]
+    #define ngx_http_get_module_loc_conf(r, module)  (r)->loc_conf[module.ctx_index]
+
+返回的`ngx_http_redis_loc_conf_t`就是需要配置了。
+
+### 产生响应
+
+由于handler的参数只有一个 `ngx_http_request_t`，而这个结构体包罗万象，比如：
+
+    ::c
+    typedef struct {
+    ...
+    /* the memory pool, used in the ngx_palloc functions */
+        ngx_pool_t                       *pool; 
+        ngx_str_t                         uri;
+        ngx_str_t                         args;
+        ngx_http_headers_in_t             headers_in;
+
+    ...
+    } ngx_http_request_t;
+
+ - `pool` 内存池，用ngx_palloc时需要的
+ - `uri` 请求的uri
+ - `args` 请求的queryString部分，比如 `name=jhon`
+ - `headers_in` Request的Headers部分，详见[http/ngx_http_request.h](http://lxr.evanmiller.org/http/source/http/ngx_http_request.h#L158)
+
+### 发送Headers
+
+Response的Headers在`ngx_http_request_t.headers_out` 中，
+要发送headers，直接 `rc = ngx_http_send_header(r)` 就行了，
+其中这个结构体中比较有趣的一部分是：
+
+    ::c
+    typedef stuct {
+    ...
+        ngx_uint_t                        status;
+        size_t                            content_type_len;
+        ngx_str_t                         content_type;
+        ngx_table_elt_t                  *content_encoding;
+        off_t                             content_length_n;
+        time_t                            date_time;
+        time_t                            last_modified_time;
+    ..
+    } ngx_http_headers_out_t;
+
+比如我们可以根据redis的设定返回Header（事实上这个模块并没有这种配置，
+echo模块有status设置，以下是我自己的脑补）：
+
+    ::c
+    r->headers_out.status = rlcf.status;
+    r->headers_out.content_length_n = 100;
+    r->headers_out.content_type.len = sizeof(rlcf.content_type) - 1;
+    r->headers_out.content_type.data = (u_char *) rlcf.content_type;
+    ngx_http_send_header(r);
+
+但有些HTTP头并不能直接配置，例如`r->headers_out.content_encoding` 
+是个 `nginx_table_elt_t*`，所以需要先分配内存。`ngx_list_push`这个方法
+可以帮我们做这个事情，它传入一个`ngx_list_t`并返回最新的
+
+
+### TEST MathJax
+
+$$
+ \begin{align}
+    p(v_i=1|\mathbf{h}) &= \sigma\left(\sum_j w_{ij}h_j + b_i\right) \\\
+    p(h_j=1|\mathbf{v}) &= \sigma\left(\sum_i w_{ij}v_i + c_j\right)
+    \end{align}
+$$
+
+$$
+E(\mathbf{v}, \mathbf{h}) = -\sum_{i,j}w_{ij}v_i h_j - \sum_i b_i v_i - \sum_j c_j h_j
+$$
+
+
+- Inline equations: $p(x|y) = \frac{p(y|x)p(x)}{p(y)}$.
+
+{# Local Variables:      #}
+{# mode: markdown        #}
+{# indent-tabs-mode: nil #}
+{# End:                  #}
+

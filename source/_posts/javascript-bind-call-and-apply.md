@@ -1,0 +1,162 @@
+---
+title: JavaScript bind 探究
+keywords: 
+date: 2015-05-14 23:11:00
+uuid: 5a218b7d-ec47-4e4e-9ca0-cbc78c86d02b
+tags:
+ - tech
+---
+
+{# main content #}
+
+最近搞 OpenDove 需要注册一个回调，但是当方法体调用的时候却不能在回调里直接用 `this`，对我这门外汉来说简直不能忍（其实也不难理解诶，直观理解就是 .Net 平台下的UI Component 里的Invoke，当前线程扔一个回调给 UI 线程——到了UI线程中控制权显然发生交换了。但是 .Net 中回调的上下文环境没有因控制权转换而发生变化）。后来在 Chrome Console 下试了试 Function.prototype.bind 和 apply 等方法，在注册回调之后再用bind回本身就能用this了。 于是学学 JavaScript bind 到底是什么东西。当然首先要解答下 this 在 JavaScript 下到底是什么幺蛾子。
+
+# 关于 this
+--
+在常规的 OOL 中， `this` 与其原意是一样的，引进来是为了保存一个对象的引用（其实我很反感 python 的 self 设计——别人说 python 是完全面向对象语言，但它内部却又很多随意性和不统一性，比如那些全局方法——每个实例方法都要明确地给个self，这个不是多此一举嘛还不如 golang 的写法）。
+
+首先正常理解的`this`用法如下：
+    
+    ::javascript
+    var MyLayer = cc.Layer.extend({
+        sprite: null,
+        doSomething: function() {
+            this.sprite && this.sprite.do();
+        }
+    });
+
+这里的`this`就是 MyLayer 对象了。
+
+方法外或者匿名方法下对`this`的引用在 'use strict' 时是 undefined，不然就是其定义的方法的直接调用者了。例如：
+    ::javascript
+    var obj = {test: function(){return this;}};
+    obj.test() === obj; // true
+
+    var A = function(){}
+    A.prototype.test = function(){return this;}
+    A.prototype.testObj = function(){return obj.test();} // 谁调用的？是的，是obj，但是有没有办法直接绕过obj直接调用test呢？
+    var a = new A();
+    a.test() === a; // true
+    a.testObj() === obj; // true
+    
+
+对于 this 的理解，有这么一句话：
+
+`this` is not assigned a value until an object invokes the function where this is defined. 
+
+也就是说 this 只有在定义 this 的 Function 被调用的时候才会被赋值。有点绕，其实就是和 C/C++ 里头的 this 一个意思了。
+（其实这里有关关键就是，调用方是什么概念？ Instance or Function ？然后Function 究竟是何物？为什么 1 instanceof Number 是个false？ 为什么 {} instanceof Object 是个 true？ 十万个为什么，走进科学让我们走近 Brendan Eich —— 一个让这个世界出现全栈工程师的大师）
+
+好了，接下来就是 this 的一些坑了。
+
+## 回调的时候
+
+既然this和调用者关联，那么就说要根据上下文来判断了，比如出现一个：
+
+    ::javscript
+    var a = {callback: function(){return this;}}
+    var b = {}
+    b.invoke = a.callback;
+    b.invoke() === a; // false
+    b.invoke() === b; // true!!!
+    
+我们就需要在 a.callback 中处理“未知”的 this。 也就是我最前面碰到的问题。怎么办呢？ bind 大法好:
+    
+    ::javscript
+    var a = {callback: function(){return this;}}
+    var b = {}
+    b.invoke = a.callback.bind(a);
+    b.invoke() === a; // true
+    b.invoke() === b; // false
+
+## 闭包中
+
+OpenDove 中，其实我刚开始用的是闭包来解决回调出现的问题，只要通过中间变量处理就行了。就像下面这个：
+
+    ::javascript
+    var b = {}
+    var a = {
+        init: function(){ 
+            //这里做一些事
+            b.invoke = function(){
+                return this;
+            }
+        }
+    }
+    a.init();
+    b.invoke() === b; // true
+
+这个时间就只能用变量名大法了，比如在闭包前面加一个:
+
+    ::javascript
+    var self = this;
+
+## 借方法（Borrowing Methods）
+
+这种我 jQuery 上用过几次，通常是这种方式：
+
+    ::javascript
+    Function.apply(instance, [args...]);
+    Function.call(instance, args...); // More efficient for saving an array
+
+这种模式的是一种代码重用的机制，比如以前经常需要用到一些jQeury的 util 方法等，或者有时候我有些对象没办法用原型链去控制时（比如会有Array-like的东西可以直接借用 Array 的方法），这种确实是好方法。
+
+到这里，Function 的三大方法： bind/apply/call 已经集齐了，可以召唤神龙拯救世界开始说主题了
+
+# 这三个方法是什么鬼？
+
+首先 Function 是 JavaScript 中的一种对象，那对象肯定有方法啊，没错，就是酱紫的。其实上面差不多把这三个方法的用途讲完了，基本上都是为了传递 this、以及Borrowing Methods。
+
+## Function.prototype.bind
+
+bind 是 EC5 引入的，EC5 之前都要自己实现，如何实现呢？参考 [JavaScriptIsSexy][http://javascriptissexy.com/javascript-apply-call-and-bind-methods-are-essential-for-javascript-professionals/]，刚好可以理解下是如何实现的：
+
+    ::javascript
+    // https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Function/bind
+    if (!Function.prototype.bind) {
+        Function.prototype.bind = function(oThis) {
+            if(typeof this !== 'function'){ // 0
+                // 保证 XXX.bind 中的 XXX 是 Function，是callable
+                // 有一种情况可以用 Something.prototype = new Function() 制造原型
+                // 虽然 new Something 有 bind 方法却非callable
+                throw new TypeError("Function.prototype.bind - what is trying to be bound is not callable");
+            }
+
+            var args = Array.prototype.slice.call(arguments, 1), // 1
+                toBindFunction = this,
+                EmptyFunction  = function() {},                  // 2
+                BoundFunction  = function() {
+                    return toBindFunction.apply(
+                        this instanceof EmptyFunction && oThis   // 3
+                        ? this 
+                        : oThis || window,                       // 4
+                        args.concat(Array.prototype.slice.call(arguments))); // 5
+                };
+            EmptyFunction.prototype = this.prototype;
+            BoundFunction.prototype = new EmptyFunction();       // 6
+            return BoundFunction;
+        };
+    }
+
+上面这个方法有点难理解（谁当我是彩笔。。。），我对其中的简单理解如下：
+    
+    0. 此处的 this 指 我们要调用的方法本身，而要被绑定的是 this.this，这里需要进行判断是因为我们要调用的方法必须是可调用的，当出现 Something.prototype = new Function() 会继承这个方法，但是确实么有意义
+    1. 获取除了 oThis 之外的参数
+    2. 作用是啥？
+    3. 这里的 this 指的是 BoundFunction 的实例，而前文的 this 在此处为 toBindFunction。这里判断是否为 EmptyFunction（至于为什么我现在还不懂，其实没有后面几步正常也是可行的）
+    4. 保证没有指定的时候默认为 window（浏览器环境的 global 对象）
+    5. 拼接两个方法的参数
+    6. 通过 EmptyFunction（这个名字我自己取的）间接让 BoundFunction 继承 this（就是原来的方法）的方法
+    
+## apply & call
+
+这两个上面也用了好多了，我太清楚具体的区别， 不过明显区别就是， apply 第二个是参数列表（是不是和其他语言的很想，比如 python 的方法参数是 tuple、.Net 里头回调方法基本上都是用数组），而call则是直接是一个个以逗号区分的参数，就像普通方法调用那样。
+
+# 总结
+
+总之我还不懂 javascript 的各类高级用法，继续学习中。。。
+
+{# Local Variables: #}
+{# mode: markdown   #}
+{# End:             #}
+

@@ -1,0 +1,20 @@
+---
+title: 一步一步写GIS库 0. 写在所有之前
+date: 2013-11-30 00:00:00
+keywords: "GIS, zmaply"
+uuid: 5f6db065-38d1-4b64-af20-de632aa0f394
+tags:
+ - tutorial
+---
+
+暑假康博师兄回来说要做一个用 OpenGL 和 SQLite 一起的跨平台的GIS相关lib。 刚好可以利用这个机会学习学习。学了这么多年GIS，对于GIS算法和渲染这方便基本没了解，希望趁此机会能有所建树。
+
+但一人之力尚不足完成这件事情，恰好也在找工作期间，所以一下子耽搁到11月份了。最近事情渐少，便参考 [WhirlyGlobe](https://github.com/mousebird/WhirlyGlobe) 自己造个轮子，一是因为这个项目是APL2 的， 不好直接拿来用，二来边参考边码代码有助于提高编码能力和对Geometry的理解。
+
+按照我这种常常把创作冲动当创作才能的人，真的很难有个好结尾的，所以看能不能写个日志监督一下。
+
+
+
+{# Local Variables: #}
+{# mode: markdown   #}
+{# End:             #}
