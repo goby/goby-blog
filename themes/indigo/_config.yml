@@ -49,7 +49,7 @@ categories_title: Categories
 excerpt_render: false
 excerpt_length: 200
 excerpt_link: Read More...
-mathjax: false
+mathjax: true
 archive_yearly: true
 
 # 是否显示文章最后更新时间

@@ -74,16 +74,7 @@ pagination_dir: page
 ## Themes: https://hexo.io/themes/
 #theme: landscape
 theme: indigo
-meta:
-  nodemeta: meta.yaml
-  author: Tanglim LUA
-  title: "gobyoung"
-  created: git
-  modified: git
-  language: cn
-  disqus: cc98
-  keywords: "gis, python, performance, netease"
-  charset: utf-8
+
 menu:
   - name: "The One"
     page: "http://gobyoung.com"

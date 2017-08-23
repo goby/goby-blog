@@ -379,19 +379,21 @@ echo模块有status设置，以下是我自己的脑补）：
 
 ### TEST MathJax
 
-$$
- \begin{align}
-    p(v_i=1|\mathbf{h}) &= \sigma\left(\sum_j w_{ij}h_j + b_i\right) \\\
-    p(h_j=1|\mathbf{v}) &= \sigma\left(\sum_i w_{ij}v_i + c_j\right)
-    \end{align}
-$$
+$$\frac{\partial u}{\partial t}
+= h^2 \left( \frac{\partial^2 u}{\partial x^2} +
+\frac{\partial^2 u}{\partial y^2} +
+\frac{\partial^2 u}{\partial z^2}\right)$$
 
-$$
-E(\mathbf{v}, \mathbf{h}) = -\sum_{i,j}w_{ij}v_i h_j - \sum_i b_i v_i - \sum_j c_j h_j
-$$
+$$\begin{align}
+    p(v_i=1|\mathbf{h}) &= \sigma\left(\sum_j w_{ij}h_j + b_i\right) \\
+    p(h_j=1|\mathbf{v}) &= \sigma\left(\sum_i w_{ij}v_i + c_j\right)
+ \end{align}$$
+
+$$E(\mathbf{v}, \mathbf{h}) = -\sum_{i,j}w_{ij}v_i h_j - \sum_i b_i v_i - \sum_j c_j h_j$$
 
 
 - Inline equations: $p(x|y) = \frac{p(y|x)p(x)}{p(y)}$.
+- Simple inline $a = b + c$.
 
 {# Local Variables:      #}
 {# mode: markdown        #}
