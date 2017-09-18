@@ -1,0 +1,12 @@
+# My CV
+en:
+  name: Donglin LAI
+  education:
+  - degree: Master
+    major: "Map rendering optimization on Mobile Device"
+    school: Zhejiang Unveristy
+    time:   2011/09-2014/03
+  - degree: Bachelor
+    major: "Geographic Information Science"
+    school: Zhejiang Unveristy
+    time:   2007/09-2011/06

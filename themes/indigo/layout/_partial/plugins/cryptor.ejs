@@ -1,0 +1,12 @@
+<% if (theme.encrypted){ %>
+<div id="decryptor" class="decryptor hide">
+  <div class="keybox">
+    <header><h2 class="title">Open Sesame</h2></header>
+    <section>
+      <input id="decrypt-key" type="password">
+      <a id="decrypt" class="waves-effect waves-button">See</a>
+    </section>
+  </div>
+</div>
+<%- js('js/crypto-js') %>
+<% } %>

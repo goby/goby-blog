@@ -75,6 +75,9 @@ pagination_dir: page
 #theme: landscape
 theme: indigo
 
+meta:
+  brand: assets/img/atlas.png
+
 menu:
   - name: "The One"
     page: "http://gobyoung.com"
@@ -90,9 +93,27 @@ menu:
   - name: "About"
     page: "about.html"
 
+lazeload:
+  enable: true
+  onlypost: true
+
 # Deployment
 ## Docs: https://hexo.io/docs/deployment.html
 deploy:
   type: git
   repo: git@github.com:goby/goby.github.io.git
   branch: master
+
+encrypt:
+  enable: true
+  default_template:
+    <div id="security">
+    <div class="input-container page-encrypt">
+            <input type="password" class="form-control" id="pass" placeholder=" {{message}} " />
+            <label for="pass"> {{message}} </label>
+            <div class="bottom-line"></div>
+        </div>
+    </div>
+    <div id="encrypt-blog" style="display:none">
+        {{content}}
+    </div>

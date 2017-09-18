@@ -11,6 +11,9 @@ menu:
   heart:
     text: The One
     url: //gobyoung.com
+  child:
+    text: NanYu
+    url: /nanyu
   home:
     text: Home
     url: /
@@ -30,12 +33,12 @@ avatar: /img/avatar.jpg
 # avatar link
 avatar_link: /
 # 头像背景图
-brand: /img/brand.jpg
+brand: /assets/img/atlas.png
 # favicon
 favicon: /favicon.ico
 
 # email
-email: 634206017@qq.com
+email: goby#foxmail.com
 
 # 设置 Android L Chrome 浏览器状态栏颜色
 color: '#3F51B5'
@@ -120,7 +123,7 @@ canonical: false
 since_year: 2015
 
 # 用户页面中作者相关的描述性文字，如不需要设为 false
-about: 用户页面中作者相关的描述性文字，如不需要设为 false
+about: false
 
 # “不蒜子”访问量统计，详见 http://ibruce.info/2015/04/04/busuanzi/
 visit_counter: false

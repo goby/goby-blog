@@ -3,7 +3,8 @@
     hdClass: 'index-header'
 }) %>
 <div class="container body-wrap">
-
+    <% if (0) { %>
+    <%- partial('_partial/brand') %> <% } %>
     <ul class="post-list">
     <% page.posts.each(function(post){ %>
         <li class="post-list-item fade">

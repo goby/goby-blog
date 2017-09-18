@@ -11,3 +11,6 @@ footer:
 tag:
   all: "全部"
   tags: "标签"
+
+brand:
+  enter: "进入Blog" 

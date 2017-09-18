@@ -11,3 +11,6 @@ footer:
 tag:
   all: "全部"
   tags: "標籤"
+
+brand:
+  enter: "訪問Blog" 

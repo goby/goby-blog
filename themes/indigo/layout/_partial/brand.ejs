@@ -1,0 +1,12 @@
+<img src="<%- url_for(config.meta.brand) %>" class="center" />
+<ul class="article-tag-list" style="display: none">
+<% if (config.language) {
+    for (var i in config.language) {
+        if ( config.language[i] != 'default') { %>
+    <li class="article-tag-list-item">
+        <a class="article-tag-list-link waves-effect waves-button" href="<%- url_for(config.language[i]) %>"><%= __('brand.enter', config.language[i]) %></a>
+    </li>
+<%      }
+    }
+} %>
+</ul>

@@ -1,7 +1,6 @@
 <%- partial('post/toc', { post: post}) %>
 <article id="<%= post.layout %>-<%= post.slug %>"
   class="post-article article-type-<%= post.layout %> fade" itemprop="blogPost">
-
     <div class="post-card">
         <h1 class="post-card-title"><%- post.title %></h1>
         <div class="post-meta">
@@ -29,3 +28,4 @@
     <%- partial('post/comment') %>
 </article>
 <%- partial('post/reward') %>
+<%- partial('plugins/cryptor') %>

@@ -11,3 +11,6 @@ footer:
 tag:
   all: "All"
   tags: "Tags"
+
+brand:
+  enter: "Enter" 
