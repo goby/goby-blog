@@ -29,7 +29,13 @@
     <title><% if (title){ %><%= title %> | <% } %><%= config.title %><% if (config.subtitle){ %> | <%= config.subtitle %><% } %></title>
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
     <% if(theme.color){ %>
+    <!-- Chrome -->
     <meta name="theme-color" content="<%=theme.color%>">
+    <!-- Windows Phone -->
+    <meta name="msapplication-navbutton-color" content="<%=theme.color%>">
+    <!-- iOS Safari -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <% } %>
     <%
         var keyWords = config.keywords;

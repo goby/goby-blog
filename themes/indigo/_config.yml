@@ -41,7 +41,7 @@ favicon: /favicon.ico
 email: goby#foxmail.com
 
 # 设置 Android L Chrome 浏览器状态栏颜色
-color: '#3F51B5'
+color: '#009688'
 
 # 页面标题
 tags_title: Tags
