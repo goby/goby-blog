@@ -45,8 +45,7 @@ Syn Proxy 早在6、7年前已经有人在内核的netfilter框架中[实现][sy
 Syn Proxy的主要流程是与Client三路握手、与Server三路握手、转发数据。
 因此大致的数据流如下图：
 
-![three way hands shake][3whs]
-[3whs]: [[!!images/synproxy/flow.png]] "The packets flow of SynProxy"
+![three way hands shake](/assets/img/synproxy/flow.png)
 
 上述流程分为四个阶段：
 
@@ -57,8 +56,7 @@ Syn Proxy的主要流程是与Client三路握手、与Server三路握手、转�
     
 四个阶段的状态变迁如下图：
 
-![stat transfer][stat]
-[stat]: [[!!images/synproxy/stat.png]] "How these 4 stat change"
+![stat transfer](/assets/img/synproxy/stat.png)
 
 ###优点：
 
@@ -113,8 +111,7 @@ WinSize的处理比较简单，有两种解决方案，一种取 Linux 默认大
 
 从上一节我们发现Syn Cookie中，高8位可以还原Time和MSS，那么还有低24位是不是可以用来放置 SACK、Timestamp和WinScale呢？阿里开源的LVS中就用下面的[算法][cookie_algo] 来改进Syn Cookie:
 
-![code of syn cookie][code]
-[code]: [[!!images/synproxy/code.png]] "阿里LVS开源版本SynCookie组成"
+![code of syn cookie](/assets/img/synproxy/code.png)
 
 ### T1阶段防御
 

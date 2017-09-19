@@ -82,7 +82,7 @@ ngx_shm_t 的分配非常简单，当前系统是否支持匿名内存(MAP_ANONY
 
 在实际中，页表是按大小进行组织，小需求(< 0.5pagesize)由前若干个 page(又称为 slot ) 管理，大需求都是连续整页地分配，由第二部分的page 分配。基本如下：
 
- ![Alt pic](/assets/img/b8368623-703d-4515-8e18-90c7a5eac5a6.jpg) 
+ ![Alt pic](/assets/img/maglev/b8368623-703d-4515-8e18-90c7a5eac5a6.jpg) 
 
 在实际内存中，格式化结果如下：
 1 级是page，大小等于系统的 pagesize：
@@ -107,7 +107,7 @@ mask = n << NGX_SLAB_MAP_SHIFT;
 
 如下图：
 
- ![Alt pic](/assets/img/2367a6a5-cf0c-41cc-a303-0138fa7365c6.jpg) 
+ ![Alt pic](/assets/img/maglev/2367a6a5-cf0c-41cc-a303-0138fa7365c6.jpg) 
 
 接下来，就利用 mask 查找可用的块，要注意的是，如果当前chunk 分配完了刚好整个页都被用光了，那么需要将这个页从可用页中删除掉（就是从 slot 上解除掉，会不会像个孤页？不会，因为根据被free的地址就能反推得到这个页头，当这个页有chunk被释放时，会被挂回来）。
 
@@ -123,7 +123,7 @@ mask = n << NGX_SLAB_MAP_SHIFT;
 
 刚开始 free->next = pages, free->prev = NULL;   pages->next = pages->prev = free;
 
- ![Alt pic](/assets/img/87184525-3453-4234-83b6-514f4cc2b971.jpg) 
+ ![Alt pic](/assets/img/maglev/87184525-3453-4234-83b6-514f4cc2b971.jpg) 
 
 # 共享内存分配与回收
 

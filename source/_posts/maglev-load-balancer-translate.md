@@ -37,7 +37,7 @@ Google 的服务需要在全球范围多个集群部署一堆服务器。
 一个基本的功能就需要均衡所有服务器的流量。
 从而使网络负载均衡器成为 Google 生产环境的网络基础设施中的重要组成部分。
 
- ![Alt pic](/assets/img/e30cf8fc-0274-4052-b590-ec8a839789ed.jpg) 
+ ![Alt pic](/assets/img/maglev/e30cf8fc-0274-4052-b590-ec8a839789ed.jpg) 
 
 一个网络负载均衡器通常由多台分布在路由器和服务端(通常是TCP/UDP服务器)之间的设备组成，
 例如图一所示。
@@ -94,7 +94,7 @@ Maglev 部署在 Google 前端服务位置，包含多种集群规格。
 为了化繁为简，本文中，我们只关注于构建一个小型的集群，然后简要地描述大型集群的构建。
 图2 显示一个小型集群的 Google 前端服务架构的概况。
 
- ![Alt pic](/assets/img/3db49483-ce09-4384-9eec-4963db7c0950.jpg) 
+ ![Alt pic](/assets/img/maglev/3db49483-ce09-4384-9eec-4963db7c0950.jpg) 
 
 每个 Google 服务都有一个或者多个 VIP。
 一个 VIP 和物理 IP 的区别在于 VIP 没有绑给某个特定的网卡，
@@ -128,7 +128,7 @@ DSR的实现则在本文的范畴之外。[注： DSR实现需要依赖每个服
 控制器和转发器都需要从配置对象中学习 VIP。
 配置对象则从配置文件中读取或者通过 RPC 接收来自外部系统控制。
 
- ![Alt pic](/assets/img/987eed70-e65e-4bac-a9e5-81ade6deb8a5.jpg) 
+ ![Alt pic](/assets/img/maglev/987eed70-e65e-4bac-a9e5-81ade6deb8a5.jpg) 
 
 每台 Maglev 机器，控制器周期性地转发器的健康状态。
 根据检查结果， 控制器决定通过 BGP 宣告或者撤回 VIP。
@@ -165,7 +165,7 @@ Maglev 接收的所有 VIP 数据包都是由转发器处理。
 转发器从网卡接收到数据包，通过合理的 GRE/IP 头重写数据包，再将它们发回网卡。
 Linux 内核不参与这个过程。
 
- ![Alt pic](/assets/img/68165b8d-e769-499c-8b75-ecca8681600b.jpg) 
+ ![Alt pic](/assets/img/maglev/68165b8d-e769-499c-8b75-ecca8681600b.jpg) 
 
 从网卡接收数据包的首先被转发器中的 Steering 模块处理，
 即通过 5 元组哈希(`s_ip`, `s_port`, `d_ip`, `d_port`, `ip_proto_num`)然后交给不同接收队列。
@@ -209,7 +209,7 @@ Maglev 是一个运行在通用 Linux 服务器上的用户态程序。
 当 Maglev 启动时，预先分配至好网卡和转发器共用的数据包池(Packet pool)。
 Steering 和 muxing 模块都维护了一个指针的 ring queue ，指向该数据包池。
 
- ![Alt pic](/assets/img/9688207c-2875-4f4c-81d1-81e8681a1fbb.jpg) 
+ ![Alt pic](/assets/img/maglev/9688207c-2875-4f4c-81d1-81e8681a1fbb.jpg) 
 
 Steering 和 Muxing 模块都为了 3 个指向环形队列的指针。 
 对于接收端，网卡将新收到的包放在 `received` 指针位置，然后向前移动该指针。
@@ -455,7 +455,7 @@ Google 生产环境的网络，每个集群都给一个外网 IP 的前缀用来
 用户通过 DNS 来访问他们。
 例如，Service1 在 C1中配置为 74.125.137.1, C2中为 173.194.71.1。
 
- ![Alt pic](/assets/img/cbe69316-d0fd-469a-9692-95948f0cfb51.jpg) 
+ ![Alt pic](/assets/img/maglev/cbe69316-d0fd-469a-9692-95948f0cfb51.jpg) 
 
 Google 拥有很多集群的级别，服务的不同的 VIP。
 同一个级别的集群拥有相同的前缀长度，但是不同级别的集群长度可能不一样。
@@ -557,7 +557,7 @@ Packet-tracer 数据包会被 Maglev 限速，因此他们处理比较耗时。
 数据收集粒度为5分钟，负载用每天的平均 cps 标准化。图7 显示了某天所有 endpoint 的负载的平均值和标准差。
 流量负载的显示了一天的趋势。相对于平均负载，标准差一直都很小，变异系数大多数时间在 6% ~ 7%之间。
 
- ![Alt pic](/assets/img/84c97589-6f51-4e76-817b-b176a0411f89.jpg) 
+ ![Alt pic](/assets/img/maglev/84c97589-6f51-4e76-817b-b176a0411f89.jpg) 
 
 图7同时显示了每个时间点最高负载与平均负载的冗余系数。
 冗余系数非常重要，我们总是要确保最繁忙的节点有足够的能力处理所有流量。
@@ -595,7 +595,7 @@ Maglev 单机的吞吐量受很多因素的影响，包括处理线程的个数�
 我们用了1个核来处理 Steering 和 Muxing，因此最多有7个工作线程。
 包含和不包含 Kernel bypass 的测试结果见图8.
 
- ![Alt pic](/assets/img/cd73a348-3ac6-4581-9509-a87cf75376a0.jpg) 
+ ![Alt pic](/assets/img/maglev/cd73a348-3ac6-4581-9509-a87cf75376a0.jpg) 
 
 图中显示 Maglev 在 Kernel Bypass 下拥有明显的性能优势。在不超过4个线程时， Maglev 是瓶颈，吞吐量随线程数线性增长。
 当超过4个线程时，网卡成为了瓶颈。
@@ -619,7 +619,7 @@ SYN 包实验显示 Maglev 在应对 SYN Flood 时的表现，
 但是对于固定五元组，则使用固定的端口。
 这些实验总是发送最小的 TCP 包 —— 即 64 字节。
 
- ![Alt pic](/assets/img/ecf106d0-185f-4e64-9f9b-d50d869a3ba6.jpg) 
+ ![Alt pic](/assets/img/maglev/ecf106d0-185f-4e64-9f9b-d50d869a3ba6.jpg) 
 
 如图9， 这些试验中，在非 SYN 和固定五元组中， 5个处理线程就达到网卡的极限。
 但是对于 SYN 包， Maglev 需要 6 个线程才能跑满网卡。
@@ -640,7 +640,7 @@ Maglev 在固定五元组也拥有很高的性能，表明 Steering 模块
 因为网卡不再是瓶颈，这张图显示了Maglev在当前硬件条件下的性能极限——略高于 15Mbps。
 实际上，瓶颈是 Maglev 的Steering 模块，未来切换到40Gbps网卡时我们会继续优化。
 
- ![Alt pic](/assets/img/4d4244e8-cd4d-4d82-98d5-a80180f885d4.jpg) 
+ ![Alt pic](/assets/img/maglev/4d4244e8-cd4d-4d82-98d5-a80180f885d4.jpg) 
 
 ## 5.3 一致性哈希
 
@@ -652,7 +652,7 @@ Maglev 在固定五元组也拥有很高的性能，表明 Steering 模块
 对于 Karger 我们设定视图数目为1000。
 图11展示了每种方法的表大小、每个后端的最小和最大条目比例。
 
- ![Alt pic](/assets/img/5b99a425-e144-4baa-bd73-6287b409003f.jpg) 
+ ![Alt pic](/assets/img/maglev/5b99a425-e144-4baa-bd73-6287b409003f.jpg) 
 
 正如期望的，无论表达小如何，Maglev 哈希提供了几乎完美的负载均衡特性。
 当表大小为65537时， Karger 和 Rendezvous 为了应对不平衡的流量，需要后端的冗余分别达到29.7%和49.5%。
@@ -668,7 +668,7 @@ Karger 和 Rendezvous 保证当某些后端失效， 剩余的后端均不会有
 然后重新生成表并计算表变更的数目。
 对于每个 k，我们重复了 200 次实验，然后计算平均值。
 
- ![Alt pic](/assets/img/a338aa2f-df9b-4973-857f-305c70e6ed9f.jpg) 
+ ![Alt pic](/assets/img/maglev/a338aa2f-df9b-4973-857f-305c70e6ed9f.jpg) 
 
 图12 展示随着同时失败数目的增加，需要变更条目数目的比例也逐步增加。
 Maglev 哈希在表大小更大的情况应对恢复的能给力越好。
