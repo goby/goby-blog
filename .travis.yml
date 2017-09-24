@@ -14,3 +14,6 @@ after_success:
 env:
   global:
   - EN_LABEL: "0538ff262ea0"
+branches:
+  only:
+  - hexo
