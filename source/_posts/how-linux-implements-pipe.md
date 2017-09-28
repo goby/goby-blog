@@ -1,3 +1,7 @@
+title: pipe(7) 原理与实现
+date: 2017-08-09 09:07:41
+tags: []
+categories: []
 ---
 title: pipe(7) 原理与实现
 date: 2017-08-09 09:07:41
@@ -100,8 +104,7 @@ McIlory 认为当时一个最重要的事就是找到一种类似花园浇水软
 
 最后，不得不说一句，令人遗憾的是，根据 [Warren Toomey][] 的说法，他在 1999 年 1 月拿到 Dennis Ritchie 关于 Research Unix V3 的拷贝 ，但却没有完整地留存下来，而遗留下来的版本，如今放在[阿尔卡特朗讯][3]的网站上，却刚好遗失了 `pipe()` 相关的源码，实在令人扼腕（这不得不说起台湾清华大学的开放课程 [《科幻概论》][4] 的授课老师郑运鸿先生的话，大意是“这个科技时代吊诡的是想要保存的总会丢失，不想要的总是存在世界的某个角落”，这里借用下字面意思）
 
-> In particular, 'nsys'
-does not have the pipe() system call. I have only just got the 'nsys' kernel
+> In partijust got the 'nsys' kernel
 to boot, so I have not had a chance to sit down and work out exactly what
 functionality is missing.
 >
@@ -131,8 +134,15 @@ It appears that it is intended to be loaded into memory at physical address 0, a
 // TODO
 
 
-[1]: https://en.wikipedia.org/wiki/Pipeline_(Unix)  "Pipeline (Unix) - Wikipedia"
-[2]: http://doc.cat-v.org/unix/pipes/ "The Origin of Unix Pipes"
+[1]: https://en.wikipedia.org/wiki/Pipeline_e System
+
+首先我们从 VPS 讲起， VFS 即 [Virtual File System](https://en.wikipedia.org/wiki/Virtual_file_system)，简单来说，就是一个文件系统的抽象，
+定义一定的接口将各种类型的文件系统的接口统一。
+
+
+
+
+[1]: https://en.wikipedia.org/wiki/Pipeline_(Unix)  "Pipelin Origin of Unix Pipes"
 [3]: http://www.tuhs.org/Archive/Distributions/Research/Dennis_v3/
 [4]: http://ocw.nthu.edu.tw/ocw/index.php?page=course&cid=3 
 [5]: http://minnie.tuhs.org/cgi-bin/utree.pl?file=V4
