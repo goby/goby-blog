@@ -1,3 +1,0 @@
-extends: "site.yaml"
-less:
-  app: lessc.cmd
