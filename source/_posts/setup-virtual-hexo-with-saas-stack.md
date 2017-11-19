@@ -1,5 +1,5 @@
 title: Setup Virtual hexo With SaaS stack
-date: 2017-09-24T13:50:25.156Z
+date: 2017-09-24 13:50:25
 tags: []
 categories: []
 ---
@@ -11,9 +11,7 @@ categories: []
 
 基本的博客框架，就是 [hexo](https://hexo.io)。我最早用的是 [hyde](https://hyde.github.io)，但 hyde 的更新很慢，而且文档缺失，自己写插件实在蛋疼。后来发现 hexo 最近很流行，重点是，插件很多，想要随时拿，所以就转到 hexo 来了。转得很顺利，因为刚开始不懂，刚转为 hexo 想自己写主题，看了半天的 API 文档，不知所以然，毕竟对前端不熟。然后网上一搜，就找很到很多资料了。
 
-OK，另外一个呢，是编辑器的支持。还好找到 [hexo-editor](https://github.com/tajpure/hexo-editor) 这款开源软件。那思路就很简单了。刚开始我只是想给它加一个 Image Paste and Upload 的
-功能，这样就可以随时截图随时贴了。写完，突然想起，我又不想在自己的开发机上做这些和私人的东西，
-于是就想用随便一个 App Engine 来搭建这个 editor 了。然后脑子里第一个想到就是 heroku!!!
+OK，另外一个呢，是编辑器的支持。还好找到 [hexo-editor](https://github.com/tajpure/hexo-editor) 这款开源软件。那思路就很简单了。刚开始我只是想给它加一个 Image Paste and Upload 的功能，这样就可以随时截图随时贴了。写完，突然想起，我又不想在自己的开发机上做这些和私人的东西，于是就想用随便一个 App Engine 来搭建这个 editor 了。然后脑子里第一个想到就是 heroku!!!
 
 所以，大体的思路如下：
 
