@@ -33,7 +33,7 @@ avatar: /img/avatar.jpg
 # avatar link
 avatar_link: /
 # 头像背景图
-brand: /assets/img/atlas.png
+brand: /assets/img/atlas.min.png
 # favicon
 favicon: /favicon.ico
 
